@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:quiver/strings.dart';
 import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/buttonMode.dart';
 import 'package:sudoku_notepad/sudoku.dart';
@@ -32,22 +31,45 @@ class _BoardState extends State<Board>
     
   }
 
-  void handleSameNum(int newNum)
+  void handleSameNum(int newNum, bool changeNum)
   {
     int oldNum = sameNum[0][0];
-    if (newNum == 0){
+
+    if (newNum != 0)
+    {
       for (int index in sameNum[newNum])
       {
-        board[index].sameNum();
+        if (!board[index].selected)
+        {
+          board[index].sameNum();
+        }  
       }
     }
-    if(oldNum != 0)
+    if(oldNum != 0 && oldNum != newNum)
     {
       for (int index in sameNum[oldNum])
       {
-        board[index].diffNum();
+        if (!board[index].selected)
+        {
+          board[index].diffNum();
+        }
       }
     }
+
+    if (changeNum && selected.length == 1)
+    {
+      int cellNum = selected[0].num; 
+      if (cellNum != 0)
+      {
+        sameNum[cellNum].remove(selected[0].getIndex()); 
+      }
+      if(newNum != 0)
+      {
+        sameNum[newNum].add(selected[0].getIndex());
+      }
+      sameNum[0][0] = selected[0].num;
+    }
+    sameNum[0][0] = newNum;
   }
 
   void clearSelected()
@@ -85,8 +107,7 @@ class _BoardState extends State<Board>
         }
         if (valid || n==0)
         {
-          sameNum[0][0]=n;
-          sameNum[n].remove(selected[0].getIndex()); //IMPORTANT ZONE
+          handleSameNum(n, true);
           selected[0].num = n;
         }
       }
@@ -112,10 +133,9 @@ class _BoardState extends State<Board>
     {
       clearSelected();
       clearSeen();
-      handleSameNum(thisCell.num);
-      sameNum[0][0] = thisCell.num;
       if (!isSelected)
-      {
+      {      
+        handleSameNum(thisCell.num, false);
         for (Cell cell in board) //loop over coords rather than every cell in board
         {
           if (Sudoku.sameBox(thisCell, cell) || Sudoku.sameColumn(thisCell, cell) || Sudoku.sameRow(thisCell, cell))
@@ -124,17 +144,15 @@ class _BoardState extends State<Board>
             seen.add(cell);
           }
         }
-        for (int index in sameNum[thisCell.getNum()])
-        {
-          board[index].sameNum();
-        }
         thisCell.select();
         selected.add(thisCell);
-      }else
+      }
+      else
       {
-        handleSameNum(0);
+        handleSameNum(0, false);
       }
     });
+    print(sameNum);
   }
 
   void multiSelect(Cell thisCell)
