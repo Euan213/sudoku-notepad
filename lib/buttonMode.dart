@@ -1,0 +1,1 @@
+enum ButtonMode {number, pencilCorner, pencilCenter, colour}
