@@ -12,10 +12,8 @@ class Board extends StatefulWidget{
 
 class _BoardState extends State<Board>
 {
-  List<List<int>> sameNum = [[0],[],[],[],[],[],[],[],[],[],]; //i 0 is buffer, i 1 is a list of all 1's indices etc.
   List<Cell> board = [];
   List<Cell> selected = [];
-  List<Cell> seen = [];
   ButtonMode mode = ButtonMode.number;
   List<Color> colours = [ Colors.white, Colors.blue, Colors.red, Colors.yellow, Colors.green, 
                           Colors.pink, Colors.purple, Colors.brown, Colors.orange, Colors.grey];
@@ -28,88 +26,54 @@ class _BoardState extends State<Board>
     {
       mode = m;
     });
-    
   }
 
-  void handleSameNum(int newNum, bool changeNum)
+  void handleSameNum(int newNum)
   {
-    int oldNum = sameNum[0][0];
+    for (Cell cell in board)
+    {
+      if (cell.isSame)
+      {
+        cell.doSameNum();
+      }
+      if (cell.num==newNum && newNum!=0)
+      {
+        cell.doSameNum();
+      }
+    }
+  }
 
-    if (newNum != 0)
+  void handleSeen(Cell thisCell)
+  {
+    for (Cell cell in board)
     {
-      for (int index in sameNum[newNum])
+      if (thisCell.selected && Sudoku.isSeen(thisCell, cell))
       {
-        if (!board[index].selected)
-        {
-          board[index].sameNum();
-        }  
-      }
+        cell.doSeen();
+      }else if((Sudoku.isSeen(thisCell, cell) && !cell.isSeen) || ((!Sudoku.isSeen(thisCell, cell) && cell.isSeen)))
+      {
+        cell.doSeen();
+      } 
     }
-    if(oldNum != 0 && oldNum != newNum)
-    {
-      for (int index in sameNum[oldNum])
-      {
-        if (!board[index].selected)
-        {
-          board[index].diffNum();
-        }
-      }
-    }
-
-    if (changeNum && selected.length == 1)
-    {
-      int cellNum = selected[0].num; 
-      if (cellNum != 0)
-      {
-        sameNum[cellNum].remove(selected[0].getIndex()); 
-      }
-      if(newNum != 0)
-      {
-        sameNum[newNum].add(selected[0].getIndex());
-      }
-      sameNum[0][0] = selected[0].num;
-    }
-    sameNum[0][0] = newNum;
   }
 
   void clearSelected()
   {
     for (Cell cell in selected)
     {
-      cell.unselect();
+      cell.reset();
     }
     selected = [];
-  }
-  void clearSeen()
-  {
-    for (Cell cell in seen)
-    {
-      cell.unseen();
-      cell.textColour = Colors.black;
-    }
-    seen = [];
   }
   
   void setNumber(int n)
   {
-    bool valid = true;
     setState(()
     {
       if (selected.length == 1)
       {
-        for (Cell cell in seen)
-        {
-          if (cell.num == n && !cell.selected)
-          {
-            cell.textColour = Colors.red;
-            valid = false;
-          }
-        }
-        if (valid || n==0)
-        {
-          handleSameNum(n, true);
-          selected[0].num = n;
-        }
+        handleSameNum(n);
+        selected[0].num = n; 
       }
     });
   }
@@ -128,31 +92,23 @@ class _BoardState extends State<Board>
 
   void select(Cell thisCell) 
   {
-    bool isSelected = thisCell.selected;
     setState(() 
     {
-      clearSelected();
-      clearSeen();
-      if (!isSelected)
-      {      
-        handleSameNum(thisCell.num, false);
-        for (Cell cell in board) //loop over coords rather than every cell in board
-        {
-          if (Sudoku.sameBox(thisCell, cell) || Sudoku.sameColumn(thisCell, cell) || Sudoku.sameRow(thisCell, cell))
-          {
-            cell.seen();
-            seen.add(cell);
-          }
-        }
-        thisCell.select();
+      if (thisCell.selected)
+      {
+        handleSameNum(0);
+        handleSeen(thisCell);
+        clearSelected();
+      }else
+      {
+        clearSelected();
+        handleSeen(thisCell); 
+        handleSameNum(thisCell.num);
+
+        thisCell.doSelect();
         selected.add(thisCell);
       }
-      else
-      {
-        handleSameNum(0, false);
-      }
     });
-    print(sameNum);
   }
 
   void multiSelect(Cell thisCell)

@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:sudoku_notepad/cellColours.dart';
+
 
 class Cell {
-  late int boxId;
+
   List<int> coord;
+  bool isNull;
+  bool isFixed;
+  late int boxId;
+
   int num = 0;
   List<bool> pencilCorner = [false, false, false, false, false, false, false, false,false,];
   List<bool> pencilCenter = [false, false, false, false, false, false, false, false,false,];
-  bool isNull;
-  bool isFixed;
-  bool selected = false;
-  bool seenBySelectedCell = false;
+  Color colour = CellColours.base;
 
-  Color colour = const Color.fromARGB(255, 251, 228, 184);
-  Color base = const Color.fromARGB(255, 251, 228, 184);
-  Color sameNumHighlighter = Colors.green;//const Color.fromARGB(105, 255, 224, 187);
-  Color seenHighlighter = const Color.fromARGB(72, 162, 161, 162);
-  Color textColour = Colors.black;
+  bool selected = false;
+  bool isSeen = false;
+  bool isSame = false;
 
   Cell(this.coord, this.isNull, this.isFixed)
   {
@@ -29,7 +30,7 @@ class Cell {
 
   Color getTextColour()
   {
-    return textColour;
+    return CellColours.text;
   }
 
   int getIndex()
@@ -57,34 +58,30 @@ class Cell {
     pencilCenter[n-1] == !pencilCenter[n-1];
   }
 
-  select()
+  doSelect()
   {
-    selected = true; 
-    colour = Colors.yellow;
-  }
-  unselect()
-  {
-    selected = false; 
-    colour = base;
+    selected = !selected;
+    colour = CellColours.getNewColour(selected, isSame, isSeen);
   }
   
-  sameNum()
+  doSameNum()
   {
-    colour = Color.alphaBlend(sameNumHighlighter, base);
-  }
-  diffNum()
-  {
-    colour = base;
+    isSame = !isSame;
+    colour = CellColours.getNewColour(selected, isSame, isSeen);
   }
 
-  seen()
+  doSeen()
   {
-    seenBySelectedCell = true;
-    colour = Color.alphaBlend(seenHighlighter, base);
+    isSeen = !isSeen;
+    colour = CellColours.getNewColour(selected, isSame, isSeen);
   }
-  unseen()
+
+  reset()
   {
-    seenBySelectedCell = false; 
-    colour = base;
+    isSeen = false;
+    isSame = false;
+    selected = false;
+    colour = CellColours.getNewColour(selected, isSame, isSeen);
   }
+
 }
