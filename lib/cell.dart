@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:sudoku_notepad/cellColours.dart';
-
+import 'package:sudoku_notepad/sudoku.dart';
 
 class Cell {
 
-  List<int> coord;
+  int index;
+  int boxId;
   bool isNull;
   bool isFixed;
-  late int boxId;
+
+  double topMargin = 1.0;
+  double bottomMargin = 1.0;
+  double leftMargin = 1.0;
+  double rightMargin = 1.0;
 
   int num = 0;
   List<bool> pencilCorner = [false, false, false, false, false, false, false, false,false,];
@@ -18,10 +23,7 @@ class Cell {
   bool isSeen = false;
   bool isSame = false;
 
-  Cell(this.coord, this.isNull, this.isFixed)
-  {
-    boxId = coord[0];
-  }
+  Cell(this.boxId, this.index, this.isNull, this.isFixed);
 
   int getNum()
   {
@@ -35,7 +37,7 @@ class Cell {
 
   int getIndex()
   {
-    return((coord[0]*9)+coord[1]);
+    return(index);
   }
 
   fixedNum(int n)
@@ -84,4 +86,25 @@ class Cell {
     colour = CellColours.getNewColour(selected, isSame, isSeen);
   }
 
+  updateMargins(List<Cell> neighbors)
+  {
+      var [right, left, top, bottom] = neighbors.map((cell) => cell.index).toList();
+
+      if (index!=right && Sudoku.sameBox(this, neighbors[0]))
+      {
+        rightMargin = 1.0;
+      }else rightMargin=2.0;
+      if (index!=left && Sudoku.sameBox(this, neighbors[1]))
+      {
+        leftMargin = 1.0;
+      }else leftMargin=2.0;
+      if (index!=top && Sudoku.sameBox(this, neighbors[2]))
+      {
+        topMargin = 1.0;
+      }else topMargin=2.0;
+      if (index!=bottom && Sudoku.sameBox(this, neighbors[3]))
+      {
+        bottomMargin = 1.0;
+      }else bottomMargin=2.0;
+  }
 }
