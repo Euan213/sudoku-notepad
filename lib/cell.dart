@@ -15,9 +15,10 @@ class Cell {
   double rightMargin = 1.0;
 
   int num = 0;
-  List<bool> pencilCorner = [false, false, false, false, false, false, false, false,false,];
-  List<bool> pencilCenter = [false, false, false, false, false, false, false, false,false,];
+  List<bool> pencilCorner = [false, false, false, false, false, false, false, false, false,];
+  List<bool> pencilCenter = [false, false, false, false, false, false, false, false, false,];
   Color colour = CellColours.base;
+  Color textColour = CellColours.text;
 
   bool selected = false;
   bool isSeen = false;
@@ -28,11 +29,6 @@ class Cell {
   int getNum()
   {
     return num;
-  }
-
-  Color getTextColour()
-  {
-    return CellColours.text;
   }
 
   int getIndex()
@@ -63,19 +59,18 @@ class Cell {
   doSelect()
   {
     selected = !selected;
-    colour = CellColours.getNewColour(selected, isSame, isSeen);
+    colour = CellColours.getNewColour(selected, isSeen);
   }
   
-  doSameNum()
+  doSameNum(bool same)
   {
-    isSame = !isSame;
-    colour = CellColours.getNewColour(selected, isSame, isSeen);
+    textColour = CellColours.getTextColour(same);
   }
 
   doSeen()
   {
     isSeen = !isSeen;
-    colour = CellColours.getNewColour(selected, isSame, isSeen);
+    colour = CellColours.getNewColour(selected, isSeen);
   }
 
   reset()
@@ -83,7 +78,7 @@ class Cell {
     isSeen = false;
     isSame = false;
     selected = false;
-    colour = CellColours.getNewColour(selected, isSame, isSeen);
+    colour = CellColours.getNewColour(selected, isSeen);
   }
 
   updateMargins(List<Cell> neighbors)
@@ -93,18 +88,30 @@ class Cell {
       if (index!=right && Sudoku.sameBox(this, neighbors[0]))
       {
         rightMargin = 1.0;
-      }else rightMargin=2.0;
+      }else 
+      {
+        rightMargin=2.0;
+      }
       if (index!=left && Sudoku.sameBox(this, neighbors[1]))
       {
         leftMargin = 1.0;
-      }else leftMargin=2.0;
+      }else 
+      {
+        leftMargin=2.0;
+      }
       if (index!=top && Sudoku.sameBox(this, neighbors[2]))
       {
         topMargin = 1.0;
-      }else topMargin=2.0;
+      }else 
+      {
+        topMargin=2.0;
+      }
       if (index!=bottom && Sudoku.sameBox(this, neighbors[3]))
       {
         bottomMargin = 1.0;
-      }else bottomMargin=2.0;
+      }else 
+      {
+        bottomMargin=2.0;
+      }
   }
 }

@@ -4,7 +4,7 @@ import 'package:sudoku_notepad/buttonMode.dart';
 import 'package:sudoku_notepad/sudoku.dart';
 
 class Board extends StatefulWidget{
-  const Board({Key? key}) : super(key: key);
+  const Board({super.key});
 
   @override
   State<Board> createState() => _BoardState();
@@ -94,7 +94,7 @@ class _BoardState extends State<Board>
     return neighbors;
   }
 
-  void handlePadding(int i, bool all)
+  void handleMargins(int i, bool all)
   {
     if (!all)
     {
@@ -115,14 +115,7 @@ class _BoardState extends State<Board>
   {
     for (Cell cell in board)
     {
-      if (cell.isSame)
-      {
-        cell.doSameNum();
-      }
-      if (cell.num==newNum && newNum!=0)
-      {
-        cell.doSameNum();
-      }
+      cell.doSameNum(cell.num==newNum);
     }
   }
 
@@ -155,27 +148,35 @@ class _BoardState extends State<Board>
     {
       if (selected.length == 1)
       {
-        handleSameNum(n);
         selected[0].num = n; 
+        handleSameNum(n);
       }
     });
   }
   void setPencilCorner(int n)
   {
-      //do stuff
+    if (selected.length == 1)
+      {
+        selected[0].pencilCorner[n] = !selected[0].pencilCorner[n]; 
+      }
   }
   void setPencilCenter(int n)
   {
-    //do someothing
+    if (selected.length == 1)
+      {
+        selected[0].num = n; 
+      }
   }
   void setColour()
   {
-    //do something
+    if (selected.length == 1)
+    {
+
+    }
   }
 
   void select(Cell thisCell) 
   {
-    print(thisCell.index);
     setState(() 
     {
       if (thisCell.selected)
@@ -205,7 +206,10 @@ class _BoardState extends State<Board>
     if (num == 0)
     {
       return '';
-    }else return '$num';
+    }else 
+    {
+      return '$num';
+    }
   }
 
   void checkSol()
@@ -224,7 +228,7 @@ class _BoardState extends State<Board>
   {
     super.initState();
     _populateBoard();
-    handlePadding(0, true);
+    handleMargins(0, true);
   }
 
   @override
@@ -260,7 +264,7 @@ class _BoardState extends State<Board>
               ),
             itemCount: 81,
             physics: const NeverScrollableScrollPhysics(),
-            itemBuilder: (BuildContext, index)
+            itemBuilder: (buildContext, index)
             {
               Cell cell = board[index];
               return InkWell(
@@ -278,7 +282,7 @@ class _BoardState extends State<Board>
                     display(cell.getNum()),
                     style: DefaultTextStyle.of(context).style.apply(
                       fontSizeFactor: 2.0, 
-                      color: cell.getTextColour()
+                      color: cell.textColour
                     )
                   ),
                 )
@@ -287,64 +291,6 @@ class _BoardState extends State<Board>
           ),
           
         ),
-        // Container(
-        //   margin: const EdgeInsets.all(5),
-        //   color: Colors.black,
-        //   alignment: Alignment.center,
-        //   child: GridView.builder(
-        //     shrinkWrap: true,
-        //     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        //       crossAxisCount: 3,
-        //       childAspectRatio: 1,
-        //       crossAxisSpacing: 4,
-        //       mainAxisSpacing: 4,
-        //       ),
-        //     itemCount: 9,
-        //     physics: const NeverScrollableScrollPhysics(),
-        //     itemBuilder: (buildContext, gridZone){
-        //       return Container(
-        //         alignment: Alignment.center,
-        //         child: GridView.builder(
-        //           shrinkWrap: true,
-        //           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        //             crossAxisCount: 3,
-        //             childAspectRatio: 1,
-        //             crossAxisSpacing: 2,
-        //             mainAxisSpacing: 2,
-        //             ),
-        //           itemCount: 9,
-        //           physics: const NeverScrollableScrollPhysics(),
-        //           itemBuilder: (buildContext, position){
-        //             int index = (gridZone*9)+position;
-        //             if (board.length < index+1) 
-        //             {
-        //               Cell cell = Cell([gridZone, position], false, false);
-        //               board.add(cell);
-        //             }
-        //             Cell cell = board[index];
-        //             return InkWell(
-        //               onTap:() => select(cell),
-        //               child: GestureDetector(
-        //                 onPanUpdate: (details) => multiSelect(cell),
-        //                 child: Container(
-        //                   alignment: Alignment.center,
-        //                   color: cell.colour,
-        //                   child: Text(
-        //                     display(cell.getNum()),
-        //                     style: DefaultTextStyle.of(context).style.apply(
-        //                       fontSizeFactor: 2.0, 
-        //                       color: cell.getTextColour()
-        //                     ),
-        //                   ),
-        //                 ),
-        //               )
-        //             );
-        //           },
-        //         ),
-        //       );
-        //     },
-        //   ),
-        // ),
         Column(
           children: [
             Row(
