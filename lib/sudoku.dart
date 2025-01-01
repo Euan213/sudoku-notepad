@@ -37,8 +37,6 @@ class Sudoku
         neighbors.add(-1); //add error value so positions of neigbors in array are maintained even if one or more n are invalid
       }
     }
-    print(neighbors);
-    print(cell.index);
     return neighbors;
   }
 

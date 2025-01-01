@@ -17,7 +17,8 @@ class Cell {
   int num = 0;
   List<bool> pencilCorner = [false, false, false, false, false, false, false, false, false,];
   List<bool> pencilCenter = [false, false, false, false, false, false, false, false, false,];
-  Color colour = CellColours.base;
+  int baseColourID = 0;
+  Color colour = CellColours.baseColours[0];
   Color textColour = CellColours.text;
 
   bool selected = false;

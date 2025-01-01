@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/buttonMode.dart';
 import 'package:sudoku_notepad/sudoku.dart';
+import 'package:sudoku_notepad/cellColours.dart';
 
 class Board extends StatefulWidget{
   const Board({super.key});
@@ -15,8 +16,6 @@ class _BoardState extends State<Board>
   List<Cell> board = [];
   List<Cell> selected = [];
   ButtonMode mode = ButtonMode.number;
-  List<Color> colours = [ Colors.white, Colors.blue, Colors.red, Colors.yellow, Colors.green, 
-                          Colors.pink, Colors.purple, Colors.brown, Colors.orange, Colors.grey];
 
   //list of constraints
 
@@ -164,10 +163,9 @@ class _BoardState extends State<Board>
   {
     if (selected.length == 1)
       {
-        selected[0].num = n; 
       }
   }
-  void setColour()
+  void setColour(int n)
   {
     if (selected.length == 1)
     {
@@ -210,6 +208,70 @@ class _BoardState extends State<Board>
     {
       return '$num';
     }
+  }
+
+  Text cellDisplay()
+  {
+    return Text("");
+  }
+
+  ElevatedButton inputButtons(int number, ButtonMode mode)
+  {
+    String textVal = "$number";
+
+    Color colour = Colors.white;
+    TextStyle textStyle;
+    VoidCallback onPressFunction;
+    Widget child;
+
+    switch (mode)
+    {
+      case ButtonMode.number:
+        onPressFunction =()=> setNumber(number);
+        textStyle = DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4);
+        child = Text(textVal, style: textStyle);
+      case ButtonMode.colour:
+        onPressFunction =()=> setColour(number);
+        textStyle = TextStyle();
+        colour = CellColours.baseColours[number];
+        textVal = "";
+        child = Text(textVal, style: textStyle);
+      case ButtonMode.pencilCenter:
+        onPressFunction =()=> setPencilCenter(number);
+        textStyle = DefaultTextStyle.of(context).style.apply(fontSizeFactor: 2);
+        child = Text(textVal, style: textStyle);
+      case ButtonMode.pencilCorner:
+        textStyle = TextStyle();
+        onPressFunction =()=> setPencilCorner(number);
+        child = Text(textVal, style: textStyle); //TODO - make pretty, text icons should appear at correct corner of buttons
+        // GridView.builder(
+        //   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3), 
+        //   physics: const NeverScrollableScrollPhysics(),
+        //   itemCount: 3,
+        //   itemBuilder: (buildContext, index) {
+        //     if (number==0)
+        //     {
+        //       return Text("Clear", style: TextStyle(backgroundColor: Colors.red,),);
+        //     }
+        //     if (index == number-1)
+        //     {
+        //       return Text("$number");
+        //     }
+        //     return Text("o");
+        //   },
+        // );   
+    }
+ 
+    if (number==0)
+    {
+      textVal="X";
+      DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4);
+    }
+    return ElevatedButton(
+      onPressed: onPressFunction,
+      style: ElevatedButton.styleFrom(backgroundColor: colour),
+      child: child,
+    );
   }
 
   void checkSol()
@@ -316,36 +378,12 @@ class _BoardState extends State<Board>
             GridView.builder(
               shrinkWrap: true,
               itemCount:10,
+              physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 5
               ),
               itemBuilder:(context, number){
-                switch (mode)
-                {
-                  case ButtonMode.number:
-                    return ElevatedButton(
-                      child: Text(
-                        '$number',
-                        style: DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4),
-                      ),
-                      onPressed: () => setNumber(number),
-                    );
-                  case ButtonMode.pencilCorner:
-                    return ElevatedButton(
-                      child: Text('corner'),
-                      onPressed: () => setPencilCorner(number),
-                    );
-                  case ButtonMode.pencilCenter:
-                    return ElevatedButton(
-                      child: Text('center'),
-                      onPressed: () => setPencilCenter(number),
-                    );
-                  case ButtonMode.colour:
-                    return ElevatedButton(
-                      child: Text('colour'),
-                      onPressed: () => setColour(),
-                    );
-                }
+                return inputButtons(number, mode);
               }
             ),
           ],
