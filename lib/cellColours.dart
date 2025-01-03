@@ -19,18 +19,19 @@ class CellColours
   static Color sameNumText = Colors.green;
   static Color seenHighlighter = const Color.fromARGB(66, 162, 161, 162);
   static Color text = Colors.black;
-  static Color selected = Colors.yellow;
+  static Color selectedMargin = Colors.yellow;
+  static Color selectedHighlighter = const Color.fromARGB(213, 255, 235, 59);
+  static Color notSelectedMargin = Colors.black;
 
 
 
-  static Color getNewColour(bool isSelected, bool seen)
+static Color getNewColour(int baseID, bool isSelected, bool seen)
   {
+    Color newColour = baseColours[baseID];
     if (isSelected)
     {
-      return selected;
+      newColour = Color.alphaBlend(selectedHighlighter, newColour);
     }
-
-    Color newColour = base;
     if (seen)
     {
       newColour = Color.alphaBlend(seenHighlighter, newColour);

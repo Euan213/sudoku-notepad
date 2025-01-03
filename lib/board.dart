@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/buttonMode.dart';
@@ -147,30 +149,66 @@ class _BoardState extends State<Board>
     {
       if (selected.length == 1)
       {
-        selected[0].num = n; 
-        handleSameNum(n);
+        if (selected[0].num == n)
+        {
+          selected[0].num = 0;
+          handleSameNum(0);
+        }
+        else
+        {
+        selected[0].num = n;
+        handleSameNum(n);        
+        } 
       }
     });
   }
   void setPencilCorner(int n)
   {
-    if (selected.length == 1)
+    setState(() {
+      if (selected.length == 1)
       {
-        selected[0].pencilCorner[n] = !selected[0].pencilCorner[n]; 
-      }
+        if (n == 0)
+        {
+          for (int number=0; number <= 8; number++)
+          {
+            selected[0].pencilCorner[number] = false;
+          }
+        }
+        else 
+        {
+          selected[0].pencilCorner[n-1] = !selected[0].pencilCorner[n-1];
+        }
+      }      
+    });
   }
   void setPencilCenter(int n)
   {
-    if (selected.length == 1)
+    setState(() {
+      if (selected.length == 1)
       {
+        if (n == 0)
+        {
+          for (int number=0; number <= 8; number++)
+          {
+            selected[0].pencilCenter[number] = false;
+          }
+        }
+        else 
+        {
+          selected[0].pencilCenter[n-1] = !selected[0].pencilCenter[n-1];
+        }
       }
+    });
   }
   void setColour(int n)
   {
-    if (selected.length == 1)
-    {
+    setState(() {
+      if (selected.length == 1)
+      {
+        selected[0].updateColour(n);
+      }      
+    });
 
-    }
   }
 
   void select(Cell thisCell) 
@@ -210,9 +248,75 @@ class _BoardState extends State<Board>
     }
   }
 
-  Text cellDisplay()
+  InkWell cellDisplay(Cell cell)
   {
-    return Text("");
+    Widget child;
+    Alignment alignment;
+    if (cell.num != 0)
+    {
+      alignment = Alignment.center;
+      child = Text(
+        '${cell.num}',
+        style: DefaultTextStyle.of(context).style.apply(fontSizeFactor: 2.0, color: cell.textColour)
+      );
+    }
+    else if(cell.pencilCenter.contains(true))
+    {
+      alignment = Alignment.center;
+      String txtStr = '';
+      for (int i = 0; i <= 8; i++)
+      {
+        if (cell.pencilCenter[i])
+        {
+          txtStr += '${i+1}';
+        }
+      }
+      child = FittedBox(
+        fit: BoxFit.fitWidth,
+        child: Text(txtStr,),
+      );
+    }
+    else if (cell.pencilCorner.contains(true))
+    {
+      List<Alignment> alignments = const [Alignment.topLeft,    Alignment.topCenter,    Alignment.topRight,
+                                          Alignment.centerLeft, Alignment.center,       Alignment.centerRight,
+                                          Alignment.bottomLeft, Alignment.bottomCenter, Alignment.bottomRight,];
+      alignment = Alignment.center;
+      child = Stack(
+        children: [for (int i=0; i<=8; i++) Container(
+          alignment: alignments[i],
+          child: () {
+            if(cell.pencilCorner[i])
+            {
+              return Text(
+                '${i+1}', 
+                style: DefaultTextStyle.of(context).style.apply(fontSizeFactor: 1, color: Colors.black),
+              );
+            }
+            return Text('');
+          }(),
+        )],
+      );
+    }
+    else
+    {
+      alignment = Alignment.center;
+      child = Text('clobnob');
+    }
+    return InkWell(
+      onTap: () => select(cell),
+      child: Container(
+        alignment: alignment,
+        color: cell.colour,
+        margin: EdgeInsets.only(
+          left: cell.leftMargin,
+          right: cell.rightMargin,
+          top: cell.topMargin,
+          bottom: cell.bottomMargin,
+        ),
+        child: child,
+      )
+    );
   }
 
   ElevatedButton inputButtons(int number, ButtonMode mode)
@@ -223,7 +327,11 @@ class _BoardState extends State<Board>
     TextStyle textStyle;
     VoidCallback onPressFunction;
     Widget child;
-
+    if (number==0)
+    {
+      textVal="X";
+      DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4);
+    }
     switch (mode)
     {
       case ButtonMode.number:
@@ -262,11 +370,7 @@ class _BoardState extends State<Board>
         // );   
     }
  
-    if (number==0)
-    {
-      textVal="X";
-      DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4);
-    }
+
     return ElevatedButton(
       onPressed: onPressFunction,
       style: ElevatedButton.styleFrom(backgroundColor: colour),
@@ -312,6 +416,10 @@ class _BoardState extends State<Board>
               onPressed: () => checkSol(),
               child: const Text('Check'),
             ),
+            ElevatedButton(
+              onPressed: () => checkSol(),
+              child: const Text('reset'),
+            ),
           ] 
         ),
         Container(
@@ -329,25 +437,15 @@ class _BoardState extends State<Board>
             itemBuilder: (buildContext, index)
             {
               Cell cell = board[index];
-              return InkWell(
-                onTap: () => select(cell),
-                child: Container(
-                  alignment: Alignment.center,
-                  color: cell.colour,
-                  margin: EdgeInsets.only(
-                    left: cell.leftMargin,
-                    right: cell.rightMargin,
-                    top: cell.topMargin,
-                    bottom: cell.bottomMargin,
-                  ),
-                  child: Text(
-                    display(cell.getNum()),
-                    style: DefaultTextStyle.of(context).style.apply(
-                      fontSizeFactor: 2.0, 
-                      color: cell.textColour
-                    )
-                  ),
-                )
+              return Container(
+                color: () {
+                  if (cell.selected)
+                  {
+                    return CellColours.selectedMargin;
+                  }
+                  return CellColours.notSelectedMargin;
+                }(),
+                child: cellDisplay(cell),
               );
             },
           ),
@@ -359,19 +457,19 @@ class _BoardState extends State<Board>
               children: [
                 ElevatedButton(
                   onPressed: () => setMode(ButtonMode.number), 
-                  child: Text('A')
+                  child: Text('Numbers')
                 ),
                 ElevatedButton(
                   onPressed: () => setMode(ButtonMode.pencilCorner), 
-                  child: Text('B')
+                  child: Image.asset('assets/PencilCorner.png'),
                 ),
                 ElevatedButton(
                   onPressed: () => setMode(ButtonMode.pencilCenter), 
-                  child: Text('C')
+                  child: Text('Center')
                 ),
                 ElevatedButton(
                   onPressed: () => setMode(ButtonMode.colour), 
-                  child: Text('D')
+                  child: Text('Colour')
                 ),
               ],
             ),

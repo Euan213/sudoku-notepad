@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sudoku_notepad/cellColours.dart';
 import 'package:sudoku_notepad/sudoku.dart';
@@ -37,52 +38,58 @@ class Cell {
     return(index);
   }
 
-  fixedNum(int n)
+  void fixedNum(int n)
   {
     num = n;
     isFixed = true;
   }
-  unfix()
+  void unfix()
   {
     isFixed=false; 
     num = 0;
   }
 
-  setPencilCorner(int n)
+  void setPencilCorner(int n)
   {
       pencilCorner[n-1] == !pencilCorner[n-1];
   }
-  setPencilCenter(int n)
+  void setPencilCenter(int n)
   {
     pencilCenter[n-1] == !pencilCenter[n-1];
   }
 
-  doSelect()
+  void doSelect()
   {
     selected = !selected;
-    colour = CellColours.getNewColour(selected, isSeen);
+    colour = CellColours.getNewColour(baseColourID, selected, isSeen);
   }
   
-  doSameNum(bool same)
+  void doSameNum(bool same)
   {
     textColour = CellColours.getTextColour(same);
   }
 
-  doSeen()
+  void doSeen()
   {
     isSeen = !isSeen;
-    colour = CellColours.getNewColour(selected, isSeen);
+    colour = CellColours.getNewColour(baseColourID, selected, isSeen);
   }
 
-  reset()
+  void reset()
   {
     isSeen = false;
     isSame = false;
     selected = false;
-    colour = CellColours.getNewColour(selected, isSeen);
+    colour = CellColours.getNewColour(baseColourID, selected, isSeen);
   }
 
-  updateMargins(List<Cell> neighbors)
+  void updateColour(int newID)
+  {
+    baseColourID = newID;
+    colour = CellColours.getNewColour(baseColourID, selected, isSeen);
+  }
+
+  void updateMargins(List<Cell> neighbors)
   {
       var [right, left, top, bottom] = neighbors.map((cell) => cell.index).toList();
 
