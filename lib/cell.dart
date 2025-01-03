@@ -20,7 +20,7 @@ class Cell {
   List<bool> pencilCenter = [false, false, false, false, false, false, false, false, false,];
   int baseColourID = 0;
   Color colour = CellColours.baseColours[0];
-  Color textColour = CellColours.text;
+  Color textColour = CellColours.baseText;
 
   bool selected = false;
   bool isSeen = false;
@@ -66,7 +66,7 @@ class Cell {
   
   void doSameNum(bool same)
   {
-    textColour = CellColours.getTextColour(same);
+    textColour = CellColours.getTextColour(selected, same, isFixed);
   }
 
   void doSeen()

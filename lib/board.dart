@@ -120,14 +120,15 @@ class _BoardState extends State<Board>
     }
   }
 
-  void handleSeen(Cell thisCell)
+  void handleSeen(Cell selectedCell)
   {
     for (Cell cell in board)
     {
-      if (thisCell.selected && Sudoku.isSeen(thisCell, cell))
+      if (cell.isSeen)
       {
         cell.doSeen();
-      }else if((Sudoku.isSeen(thisCell, cell) && !cell.isSeen) || ((!Sudoku.isSeen(thisCell, cell) && cell.isSeen)))
+      }
+      if(Sudoku.isSeen(selectedCell, cell) && selectedCell.selected)
       {
         cell.doSeen();
       } 
@@ -217,17 +218,17 @@ class _BoardState extends State<Board>
     {
       if (thisCell.selected)
       {
+        clearSelected();
         handleSameNum(0);
         handleSeen(thisCell);
-        clearSelected();
       }else
       {
         clearSelected();
-        handleSeen(thisCell); 
-        handleSameNum(thisCell.num);
-
         thisCell.doSelect();
         selected.add(thisCell);
+
+        handleSeen(thisCell); 
+        handleSameNum(thisCell.num);
       }
     });
   }
@@ -301,7 +302,7 @@ class _BoardState extends State<Board>
     else
     {
       alignment = Alignment.center;
-      child = Text('clobnob');
+      child = Text('');
     }
     return InkWell(
       onTap: () => select(cell),
@@ -388,6 +389,23 @@ class _BoardState extends State<Board>
       }
     });
   }
+  void resetPlay()
+  {
+    setState(() 
+    {
+      for (Cell cell in board)
+        {
+          if (!cell.isFixed)
+          {
+            cell.num=0;
+            cell.pencilCorner = [false, false, false, false, false, false, false, false, false,];
+            cell.pencilCenter = [false, false, false, false, false, false, false, false, false,];
+            cell.updateColour(0);
+          }
+        }    
+    });
+
+  }
 
   @override
   void initState()
@@ -417,7 +435,7 @@ class _BoardState extends State<Board>
               child: const Text('Check'),
             ),
             ElevatedButton(
-              onPressed: () => checkSol(),
+              onPressed: () => resetPlay(),
               child: const Text('reset'),
             ),
           ] 

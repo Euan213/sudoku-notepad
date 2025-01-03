@@ -16,19 +16,20 @@ class CellColours
                          Colors.orange, 
                          Colors.grey];
   static Color base = const Color.fromARGB(255, 251, 228, 184);
-  static Color sameNumText = Colors.green;
+  static Color sameNumText = const Color.fromARGB(255, 76, 173, 185);
+  static Color fixedText = const Color.fromARGB(255, 1, 112, 5);
+  static Color baseText = Colors.black;
   static Color seenHighlighter = const Color.fromARGB(66, 162, 161, 162);
-  static Color text = Colors.black;
   static Color selectedMargin = Colors.yellow;
   static Color selectedHighlighter = const Color.fromARGB(213, 255, 235, 59);
   static Color notSelectedMargin = Colors.black;
 
 
 
-static Color getNewColour(int baseID, bool isSelected, bool seen)
+static Color getNewColour(int baseID, bool selected, bool seen)
   {
     Color newColour = baseColours[baseID];
-    if (isSelected)
+    if (selected)
     {
       newColour = Color.alphaBlend(selectedHighlighter, newColour);
     }
@@ -38,16 +39,17 @@ static Color getNewColour(int baseID, bool isSelected, bool seen)
     }
     return newColour;
   }
-  static Color getTextColour(bool same)
+  static Color getTextColour(bool selected, bool same, bool fixed)
   {
-    if (same)
+    if (fixed)
+    {
+      return fixedText;
+    }
+    if (same && !selected)
     {
       return sameNumText;
     }
-    else
-    {
-      return text;
-    }
+    return baseText;
   }
   
 }
