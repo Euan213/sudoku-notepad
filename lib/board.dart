@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/buttonMode.dart';
@@ -17,7 +15,8 @@ class _BoardState extends State<Board>
 {
   List<Cell> board = [];
   List<Cell> selected = [];
-  ButtonMode mode = ButtonMode.number;
+  ButtonMode mode = ButtonMode.fixedNum;
+  bool boardModePlay = false;
 
   //list of constraints
 
@@ -31,41 +30,41 @@ class _BoardState extends State<Board>
         case  0|| 1|| 2||
               9||10||11||
              18||19||20:
-          cell = Cell(0, index, false, false);
+          cell = Cell(0, index);
         case  3|| 4|| 5||
              12||13||14||
              21||22||23:
-          cell = Cell(1, index, false, false);
+          cell = Cell(1, index);
         case 6 || 7|| 8||
              15||16||17||
              24||25||26:
-          cell = Cell(2, index, false, false);
+          cell = Cell(2, index);
         case 27||28||29||
              36||37||38||
              45||46||47:
-          cell = Cell(3, index, false, false);
+          cell = Cell(3, index);
         case 30||31||32||
              39||40||41||
              48||49||50:
-          cell = Cell(4, index, false, false);
+          cell = Cell(4, index);
         case 33||34||35||
              42||43||44||
              51||52||53:
-          cell = Cell(5, index, false, false);
+          cell = Cell(5, index);
         case 54||55||56||
              63||64||65||
              72||73||74:
-          cell = Cell(6, index, false, false);
+          cell = Cell(6, index);
         case 57||58||59||
              66||67||68||
              75||76||77:
-          cell = Cell(7, index, false, false);
+          cell = Cell(7, index);
         case 60||61||62||
              69||70||71||
              78||79||80:
-          cell = Cell(8, index, false, false);
+          cell = Cell(8, index);
         default:
-          cell = Cell(-1, index, false, false);
+          cell = Cell(-1, index);
       }
       board.add(cell);
     }
@@ -139,27 +138,47 @@ class _BoardState extends State<Board>
   {
     for (Cell cell in selected)
     {
-      cell.reset();
+      cell.doSelect();
     }
     selected = [];
   }
   
-  void setNumber(int n)
+  void setNumber(int n, bool fixed)
   {
     setState(()
     {
-      if (selected.length == 1)
+      if (!fixed)
       {
-        if (selected[0].num == n)
+        if (selected.length == 1)
         {
-          selected[0].num = 0;
-          handleSameNum(0);
+            if (!selected[0].isFixed)
+            {
+            if (selected[0].num == n)
+            {
+              selected[0].num = 0;
+              handleSameNum(0);
+            }
+            else
+            {
+            selected[0].num = n;
+            handleSameNum(n);        
+            } 
+          }
         }
-        else
+      }
+      else
+      {
+        if (selected.length == 1)
         {
-        selected[0].num = n;
-        handleSameNum(n);        
-        } 
+          if (selected[0].num == n)
+          {
+            selected[0].doFixedNum(n);
+          }
+          else
+          {
+            selected[0].doFixedNum(n);
+          }
+        }
       }
     });
   }
@@ -209,7 +228,32 @@ class _BoardState extends State<Board>
         selected[0].updateColour(n);
       }      
     });
+  }
 
+  void boardPlayMode()
+  {
+    setState(() {
+      boardModePlay = true;
+      mode = ButtonMode.number;
+      
+      clearSelected();
+      handleSeen(board[0]);
+
+    });
+  }
+
+  void boardSetMode()
+  {
+    setState(() {
+      boardModePlay = false;
+      mode = ButtonMode.fixedNum;
+      clearSelected();
+      handleSameNum(0);
+      for (Cell cell in board)
+      {
+        cell.reset();
+      }
+    });
   }
 
   void select(Cell thisCell) 
@@ -228,7 +272,10 @@ class _BoardState extends State<Board>
         selected.add(thisCell);
 
         handleSeen(thisCell); 
+        if (boardModePlay)
+        {
         handleSameNum(thisCell.num);
+        }
       }
     });
   }
@@ -308,7 +355,13 @@ class _BoardState extends State<Board>
       onTap: () => select(cell),
       child: Container(
         alignment: alignment,
-        color: cell.colour,
+        color: () {
+          if (boardModePlay)
+          {
+            return cell.colour;
+          }
+          return CellColours.fixed;
+        }(),
         margin: EdgeInsets.only(
           left: cell.leftMargin,
           right: cell.rightMargin,
@@ -320,7 +373,7 @@ class _BoardState extends State<Board>
     );
   }
 
-  ElevatedButton inputButtons(int number, ButtonMode mode)
+  ElevatedButton inputButton(int number, ButtonMode mode)
   {
     String textVal = "$number";
 
@@ -336,8 +389,12 @@ class _BoardState extends State<Board>
     switch (mode)
     {
       case ButtonMode.number:
-        onPressFunction =()=> setNumber(number);
+        onPressFunction =()=> setNumber(number, false);
         textStyle = DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4);
+        child = Text(textVal, style: textStyle);
+      case ButtonMode.fixedNum:
+        onPressFunction =()=> setNumber(number, true);
+        textStyle = DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4, color: const Color.fromARGB(255, 34, 104, 36));
         child = Text(textVal, style: textStyle);
       case ButtonMode.colour:
         onPressFunction =()=> setColour(number);
@@ -404,7 +461,20 @@ class _BoardState extends State<Board>
           }
         }    
     });
+  }
 
+  void resetAll()
+  {
+    setState(() 
+    {
+      for (Cell cell in board)
+        {
+          cell.unfix();
+          cell.pencilCorner = [false, false, false, false, false, false, false, false, false,];
+          cell.pencilCenter = [false, false, false, false, false, false, false, false, false,];
+          cell.updateColour(0);
+        }    
+    });
   }
 
   @override
@@ -423,11 +493,11 @@ class _BoardState extends State<Board>
         Row(
           children: [
             ElevatedButton(
-              onPressed: () => checkSol(),
+              onPressed: () => boardPlayMode(),
               child: const Text('Play Mode'),
             ),
             ElevatedButton(
-              onPressed: () => checkSol(),
+              onPressed: () => boardSetMode(),
               child: const Text('Set Mode'),
             ),
             ElevatedButton(
@@ -435,14 +505,23 @@ class _BoardState extends State<Board>
               child: const Text('Check'),
             ),
             ElevatedButton(
-              onPressed: () => resetPlay(),
+              onPressed: () => 
+              { 
+                if (boardModePlay)
+                {
+                  resetPlay()
+                }
+                else
+                {
+                  resetAll()
+                }
+              },
               child: const Text('reset'),
             ),
           ] 
         ),
         Container(
           margin: const EdgeInsets.all(5),
-          color: Colors.black,
           alignment: Alignment.center,
           child: GridView.builder(
             shrinkWrap: true,
@@ -474,21 +553,45 @@ class _BoardState extends State<Board>
             Row(
               children: [
                 ElevatedButton(
-                  onPressed: () => setMode(ButtonMode.number), 
+                  onPressed: (){
+                    if(boardModePlay)
+                    {
+                      return () => setMode(ButtonMode.number);
+                    }
+                    return () => setMode(ButtonMode.fixedNum);
+                    }(), 
                   child: Text('Numbers')
                 ),
-                ElevatedButton(
-                  onPressed: () => setMode(ButtonMode.pencilCorner), 
-                  child: Image.asset('assets/PencilCorner.png'),
-                ),
-                ElevatedButton(
-                  onPressed: () => setMode(ButtonMode.pencilCenter), 
-                  child: Text('Center')
-                ),
-                ElevatedButton(
-                  onPressed: () => setMode(ButtonMode.colour), 
-                  child: Text('Colour')
-                ),
+                (){
+                  if (boardModePlay)
+                  {
+                    return ElevatedButton(
+                      onPressed: () => setMode(ButtonMode.pencilCorner), 
+                      child: Image.asset('assets/PencilCorner.png'),
+                    );
+                  }
+                  return Container();
+                }(),
+                (){
+                  if (boardModePlay)
+                  {
+                    return ElevatedButton(
+                      onPressed: () => setMode(ButtonMode.pencilCenter), 
+                      child: Text('Center')
+                    );
+                  }
+                  return Container();
+                }(),
+                (){
+                  if (boardModePlay)
+                  {
+                    return ElevatedButton(
+                      onPressed: () => setMode(ButtonMode.colour), 
+                      child: Text('Colour')
+                    );
+                }
+                  return Container();
+                }(),
               ],
             ),
             GridView.builder(
@@ -499,7 +602,7 @@ class _BoardState extends State<Board>
                 crossAxisCount: 5
               ),
               itemBuilder:(context, number){
-                return inputButtons(number, mode);
+                return inputButton(number, mode);
               }
             ),
           ],

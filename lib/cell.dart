@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sudoku_notepad/cellColours.dart';
 import 'package:sudoku_notepad/sudoku.dart';
@@ -7,8 +6,7 @@ class Cell {
 
   int index;
   int boxId;
-  bool isNull;
-  bool isFixed;
+  bool isFixed = false;
 
   double topMargin = 1.0;
   double bottomMargin = 1.0;
@@ -20,13 +18,13 @@ class Cell {
   List<bool> pencilCenter = [false, false, false, false, false, false, false, false, false,];
   int baseColourID = 0;
   Color colour = CellColours.baseColours[0];
-  Color textColour = CellColours.baseText;
+  Color textColour = CellColours.fixedText;
 
   bool selected = false;
   bool isSeen = false;
   bool isSame = false;
 
-  Cell(this.boxId, this.index, this.isNull, this.isFixed);
+  Cell(this.boxId, this.index);
 
   int getNum()
   {
@@ -38,10 +36,18 @@ class Cell {
     return(index);
   }
 
-  void fixedNum(int n)
+  void doFixedNum(int n)
   {
     num = n;
-    isFixed = true;
+    if (n!=0)
+    {
+      isFixed = true;
+      }
+    else
+    {
+      isFixed = false;
+    }
+    textColour = CellColours.getTextColour(selected, isSame, isFixed);
   }
   void unfix()
   {
@@ -60,6 +66,7 @@ class Cell {
 
   void doSelect()
   {
+    print(isFixed);
     selected = !selected;
     colour = CellColours.getNewColour(baseColourID, selected, isSeen);
   }
@@ -81,6 +88,7 @@ class Cell {
     isSame = false;
     selected = false;
     colour = CellColours.getNewColour(baseColourID, selected, isSeen);
+    textColour = CellColours.getTextColour(selected, isSame, isFixed);
   }
 
   void updateColour(int newID)

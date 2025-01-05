@@ -1,1 +1,1 @@
-enum ButtonMode {number, pencilCorner, pencilCenter, colour}
+enum ButtonMode {number, pencilCorner, pencilCenter, colour, fixedNum}
