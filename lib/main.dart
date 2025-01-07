@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sudoku_notepad/board.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,13 +34,13 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({super.key});
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -49,14 +51,12 @@ class MyHomePage extends StatefulWidget {
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
 
-  final String title;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -67,13 +67,12 @@ class _MyHomePageState extends State<MyHomePage> {
     // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: Text('Home'),
       ),
-      body: const Center(
+      body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
         child: Column(
@@ -95,7 +94,14 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>
           [
-            Board(),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => Board())),
+              child: Text('New Puzzle'),
+            ),            
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => SavesPage())),
+              child: Text('Saves'),
+            ),
           ],
         ),
       ),
@@ -104,3 +110,97 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
+class SavesPage extends StatefulWidget {
+  const SavesPage({super.key});
+  @override
+  State<SavesPage> createState() => _SavesPageState();
+}
+
+class _SavesPageState extends State<SavesPage>
+{
+  Future<String> get _localPath async 
+  {
+    final directory = await getApplicationDocumentsDirectory();
+    return directory.path;
+  }
+
+  Future<File> get _file async 
+  {
+  final path = await _localPath;
+  return File('$path/saves.txt');
+  }
+
+  Future<List<String>> get _saves async
+  {
+    File file = await _file;
+    // writeInitData();
+    String content = await file.readAsString();
+    if (content == '')
+    {
+      return [];
+    }
+    List<String> saves = content.split('\n');
+    return saves;
+  }
+
+  Future<File> writeInitData() async 
+  {
+    final file = await _file;
+    // return file.writeAsString('|0|0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0');
+    return file.writeAsString('');
+
+  }
+
+  @override
+  void initState()
+  {
+    super.initState();
+    // writeInitData();
+    // _numSaves;
+  }
+  @override
+  Widget build(BuildContext context)
+  {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Saves')),
+      body: FutureBuilder<List<String>>(
+        future: _saves, 
+        builder: (BuildContext context, AsyncSnapshot<List<String>> snapshot)
+        {
+          switch (snapshot.connectionState) 
+          {
+            case ConnectionState.waiting: 
+              return Text('Loading your saves');
+            default:
+              if (snapshot.hasError)
+              {
+                return Text('Error: ${snapshot.error}');  
+              }
+              else
+              {
+                if (snapshot.data?.length==0)
+                {
+                  return Text('Looks like you have no saves!');
+                }
+                return GridView.builder(
+                  shrinkWrap: true,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 1,
+                  ),
+                  itemCount: snapshot.data?.length,
+                  itemBuilder: (context, index) 
+                  {
+                    return Container(
+                      color: Colors.blue,
+                      child: Text('${snapshot.data?[index]}'),
+                    );
+                  },
+                );
+              }
+          }
+        }
+      ),
+    );
+  }
+}

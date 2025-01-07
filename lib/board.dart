@@ -303,9 +303,12 @@ class _BoardState extends State<Board>
     if (cell.num != 0)
     {
       alignment = Alignment.center;
-      child = Text(
-        '${cell.num}',
-        style: DefaultTextStyle.of(context).style.apply(fontSizeFactor: 2.0, color: cell.textColour)
+      child = FittedBox(
+        fit: BoxFit.contain,
+        child: Text(
+          '${cell.num}',
+          style: TextStyle(fontSize: 40, color: cell.textColour)
+        ), 
       );
     }
     else if(cell.pencilCenter.contains(true))
@@ -336,9 +339,12 @@ class _BoardState extends State<Board>
           child: () {
             if(cell.pencilCorner[i])
             {
-              return Text(
-                '${i+1}', 
-                style: DefaultTextStyle.of(context).style.apply(fontSizeFactor: 1, color: Colors.black),
+              return FittedBox (
+                fit: BoxFit.contain,
+                child: Text(
+                  ' ${i+1} ', 
+                  style: TextStyle(fontSize:12, color: Colors.black),
+                ),
               );
             }
             return Text('');
@@ -384,18 +390,20 @@ class _BoardState extends State<Board>
     if (number==0)
     {
       textVal="X";
-      DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4);
     }
     switch (mode)
     {
       case ButtonMode.number:
         onPressFunction =()=> setNumber(number, false);
-        textStyle = DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4);
+        textStyle = TextStyle(color: Colors.black, fontSize: 40);//DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4);
         child = Text(textVal, style: textStyle);
       case ButtonMode.fixedNum:
         onPressFunction =()=> setNumber(number, true);
-        textStyle = DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4, color: const Color.fromARGB(255, 34, 104, 36));
-        child = Text(textVal, style: textStyle);
+        textStyle = TextStyle(color: const Color.fromARGB(255, 34, 104, 36), fontSize: 40);
+        child = FittedBox(
+          fit: BoxFit.contain,
+          child: Text(textVal, style: textStyle),
+          );
       case ButtonMode.colour:
         onPressFunction =()=> setColour(number);
         textStyle = TextStyle();
@@ -404,10 +412,10 @@ class _BoardState extends State<Board>
         child = Text(textVal, style: textStyle);
       case ButtonMode.pencilCenter:
         onPressFunction =()=> setPencilCenter(number);
-        textStyle = DefaultTextStyle.of(context).style.apply(fontSizeFactor: 2);
+        textStyle = TextStyle(fontSize: 20, color: Colors.black,);
         child = Text(textVal, style: textStyle);
       case ButtonMode.pencilCorner:
-        textStyle = TextStyle();
+        textStyle = TextStyle(color: Colors.black);
         onPressFunction =()=> setPencilCorner(number);
         child = Text(textVal, style: textStyle); //TODO - make pretty, text icons should appear at correct corner of buttons
         // GridView.builder(
@@ -488,126 +496,129 @@ class _BoardState extends State<Board>
   @override
   Widget build(BuildContext context)
   {
-    return Column(
-      children: [
-        Row(
-          children: [
-            ElevatedButton(
-              onPressed: () => boardPlayMode(),
-              child: const Text('Play Mode'),
-            ),
-            ElevatedButton(
-              onPressed: () => boardSetMode(),
-              child: const Text('Set Mode'),
-            ),
-            ElevatedButton(
-              onPressed: () => checkSol(),
-              child: const Text('Check'),
-            ),
-            ElevatedButton(
-              onPressed: () => 
-              { 
-                if (boardModePlay)
-                {
-                  resetPlay()
-                }
-                else
-                {
-                  resetAll()
-                }
-              },
-              child: const Text('reset'),
-            ),
-          ] 
-        ),
-        Container(
-          margin: const EdgeInsets.all(5),
-          alignment: Alignment.center,
-          child: GridView.builder(
-            shrinkWrap: true,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 9,
-              childAspectRatio: 1,
+    return Scaffold(
+      appBar: AppBar(title: const Text('Sudoku Time!!')),
+      body: Column(
+        children: [
+          Row(
+            children: [
+              ElevatedButton(
+                onPressed: () => boardPlayMode(),
+                child: const Text('Play Mode'),
               ),
-            itemCount: 81,
-            physics: const NeverScrollableScrollPhysics(),
-            itemBuilder: (buildContext, index)
-            {
-              Cell cell = board[index];
-              return Container(
-                color: () {
-                  if (cell.selected)
+              ElevatedButton(
+                onPressed: () => boardSetMode(),
+                child: const Text('Set Mode'),
+              ),
+              ElevatedButton(
+                onPressed: () => checkSol(),
+                child: const Text('Check'),
+              ),
+              ElevatedButton(
+                onPressed: () => 
+                { 
+                  if (boardModePlay)
                   {
-                    return CellColours.selectedMargin;
+                    resetPlay()
                   }
-                  return CellColours.notSelectedMargin;
-                }(),
-                child: cellDisplay(cell),
-              );
-            },
+                  else
+                  {
+                    resetAll()
+                  }
+                },
+                child: const Text('reset'),
+              ),
+            ] 
           ),
-          
-        ),
-        Column(
-          children: [
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed: (){
-                    if(boardModePlay)
-                    {
-                      return () => setMode(ButtonMode.number);
-                    }
-                    return () => setMode(ButtonMode.fixedNum);
-                    }(), 
-                  child: Text('Numbers')
-                ),
-                (){
-                  if (boardModePlay)
-                  {
-                    return ElevatedButton(
-                      onPressed: () => setMode(ButtonMode.pencilCorner), 
-                      child: Image.asset('assets/PencilCorner.png'),
-                    );
-                  }
-                  return Container();
-                }(),
-                (){
-                  if (boardModePlay)
-                  {
-                    return ElevatedButton(
-                      onPressed: () => setMode(ButtonMode.pencilCenter), 
-                      child: Text('Center')
-                    );
-                  }
-                  return Container();
-                }(),
-                (){
-                  if (boardModePlay)
-                  {
-                    return ElevatedButton(
-                      onPressed: () => setMode(ButtonMode.colour), 
-                      child: Text('Colour')
-                    );
-                }
-                  return Container();
-                }(),
-              ],
-            ),
-            GridView.builder(
+          Container(
+            margin: const EdgeInsets.all(5),
+            alignment: Alignment.center,
+            child: GridView.builder(
               shrinkWrap: true,
-              itemCount:10,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 9,
+                childAspectRatio: 1,
+                ),
+              itemCount: 81,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 5
-              ),
-              itemBuilder:(context, number){
-                return inputButton(number, mode);
-              }
+              itemBuilder: (buildContext, index)
+              {
+                Cell cell = board[index];
+                return Container(
+                  color: () {
+                    if (cell.selected)
+                    {
+                      return CellColours.selectedMargin;
+                    }
+                    return CellColours.notSelectedMargin;
+                  }(),
+                  child: cellDisplay(cell),
+                );
+              },
             ),
-          ],
-        ),
-      ],
+            
+          ),
+          Column(
+            children: [
+              Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: (){
+                      if(boardModePlay)
+                      {
+                        return () => setMode(ButtonMode.number);
+                      }
+                      return () => setMode(ButtonMode.fixedNum);
+                      }(), 
+                    child: Text('Numbers')
+                  ),
+                  (){
+                    if (boardModePlay)
+                    {
+                      return ElevatedButton(
+                        onPressed: () => setMode(ButtonMode.pencilCorner), 
+                        child: Image.asset('assets/PencilCorner.png'),
+                      );
+                    }
+                    return Container();
+                  }(),
+                  (){
+                    if (boardModePlay)
+                    {
+                      return ElevatedButton(
+                        onPressed: () => setMode(ButtonMode.pencilCenter), 
+                        child: Text('Center')
+                      );
+                    }
+                    return Container();
+                  }(),
+                  (){
+                    if (boardModePlay)
+                    {
+                      return ElevatedButton(
+                        onPressed: () => setMode(ButtonMode.colour), 
+                        child: Text('Colour')
+                      );
+                  }
+                    return Container();
+                  }(),
+                ],
+              ),
+              GridView.builder(
+                shrinkWrap: true,
+                itemCount:10,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 5
+                ),
+                itemBuilder:(context, number){
+                  return inputButton(number, mode);
+                }
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

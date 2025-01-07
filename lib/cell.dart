@@ -66,7 +66,6 @@ class Cell {
 
   void doSelect()
   {
-    print(isFixed);
     selected = !selected;
     colour = CellColours.getNewColour(baseColourID, selected, isSeen);
   }
