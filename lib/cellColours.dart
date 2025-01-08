@@ -23,6 +23,7 @@ class CellColours
   static Color selectedMargin = Colors.yellow;
   static Color selectedHighlighter = const Color.fromARGB(213, 255, 235, 59);
   static Color notSelectedMargin = Colors.black;
+  static Color hintHighlighter = const Color.fromARGB(255, 15, 227, 255);
 
 
 

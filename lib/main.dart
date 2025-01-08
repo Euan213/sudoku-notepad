@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sudoku_notepad/board.dart';
+import 'package:sudoku_notepad/saveLoad.dart';
 import 'package:path_provider/path_provider.dart';
 
 void main() {
@@ -68,6 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        automaticallyImplyLeading: false,
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         title: Text('Home'),
@@ -95,7 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>
           [
             ElevatedButton(
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => Board())),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => Board(-1, [], false, '', 'New Puzzle'))),
               child: Text('New Puzzle'),
             ),            
             ElevatedButton(
@@ -118,85 +120,119 @@ class SavesPage extends StatefulWidget {
 
 class _SavesPageState extends State<SavesPage>
 {
-  Future<String> get _localPath async 
-  {
-    final directory = await getApplicationDocumentsDirectory();
-    return directory.path;
-  }
-
-  Future<File> get _file async 
-  {
-  final path = await _localPath;
-  return File('$path/saves.txt');
-  }
-
-  Future<List<String>> get _saves async
-  {
-    File file = await _file;
-    // writeInitData();
-    String content = await file.readAsString();
-    if (content == '')
-    {
-      return [];
-    }
-    List<String> saves = content.split('\n');
-    return saves;
-  }
-
-  Future<File> writeInitData() async 
-  {
-    final file = await _file;
-    // return file.writeAsString('|0|0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0');
-    return file.writeAsString('');
-
-  }
-
   @override
   void initState()
   {
     super.initState();
-    // writeInitData();
+    SaveLoad.writeToFile(FileMode.append, '');
+    // SaveLoad.writeInitData();
     // _numSaves;
   }
   @override
   Widget build(BuildContext context)
   {
     return Scaffold(
-      appBar: AppBar(title: const Text('Saves')),
-      body: FutureBuilder<List<String>>(
-        future: _saves, 
-        builder: (BuildContext context, AsyncSnapshot<List<String>> snapshot)
+      appBar: AppBar(
+        title: const Text('Saves'),
+      ),
+      body: FutureBuilder<String>(
+        future: SaveLoad.asString, 
+        builder: (BuildContext context, AsyncSnapshot<String> snapshot) 
         {
           switch (snapshot.connectionState) 
           {
-            case ConnectionState.waiting: 
+            case ConnectionState.waiting || ConnectionState.active: 
               return Text('Loading your saves');
             default:
+              List<String>? data = snapshot.data?.split('\n');
               if (snapshot.hasError)
               {
                 return Text('Error: ${snapshot.error}');  
               }
               else
               {
-                if (snapshot.data?.length==0)
+                if (data==0)
                 {
                   return Text('Looks like you have no saves!');
                 }
                 return GridView.builder(
                   shrinkWrap: true,
+                  padding: EdgeInsets.all(5),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisSpacing: 5,
+                    mainAxisSpacing: 5,
                     crossAxisCount: 2,
-                    childAspectRatio: 1,
+                    childAspectRatio: 2.5,
                   ),
-                  itemCount: snapshot.data?.length,
+                  itemCount: data?.length,
                   itemBuilder: (context, index) 
                   {
-                    return Container(
-                      color: Colors.blue,
-                      child: Text('${snapshot.data?[index]}'),
+                    List<String> boardData = '${data?[index]}'.split('|');
+                    return DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.all(Radius.circular(20)),
+                      ),
+                      child: Container(
+                        padding: EdgeInsets.all(5),
+                        child:DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.lightBlue,
+                            borderRadius: BorderRadius.all(Radius.circular(15)),
+                          ),
+                          child: Stack(
+                            children:[
+                              Container(alignment: Alignment.topCenter, child: Text(
+                                boardData[3],
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color.fromARGB(255, 42, 0, 228),)
+                              )),
+                              Container(
+                                alignment: Alignment.bottomCenter,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  spacing: 20,
+                                  children: [
+                                    IconButton(
+                                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                                        builder: (context) => Board(index, boardData[0].split('¦'), boardData[1]=='0'?false:true, boardData[2], boardData[3])
+                                      )),
+                                      icon: Icon(Icons.play_arrow, color: const Color.fromARGB(255, 0, 158, 5), size: 50,)
+                                    ),
+                                    IconButton(
+                                      onPressed: () =>
+                                        showDialog<String>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: Text('Delete ${boardData[3]}?'),
+                                            content: Text('Are you absolutely sure you want to kill ${boardData[3]}? Theres no going back.'),
+                                            actions: [
+                                              ElevatedButton(
+                                                onPressed: () => {
+                                                  Navigator.pop(context, 'Killed'),
+                                                  SaveLoad.deleteBoard(index).then((_) 
+                                                  {
+                                                    setState(() {});
+                                                  }), 
+                                                },
+                                                child: Text('YES KILL IT!'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () => Navigator.pop(context, 'Cancel'), 
+                                                child: Text('no.'),
+                                              )
+                                            ]),
+                                        ),
+                                      icon: Icon(Icons.delete, size: 35,)
+                                    ),  
+                                  ])
+                              ),
+                            ]),
+                        ),
+                      ),
                     );
-                  },
-                );
+                  });
               }
           }
         }

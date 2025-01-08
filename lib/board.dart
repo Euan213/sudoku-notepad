@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/buttonMode.dart';
+import 'package:sudoku_notepad/main.dart';
+import 'package:sudoku_notepad/saveLoad.dart';
 import 'package:sudoku_notepad/sudoku.dart';
 import 'package:sudoku_notepad/cellColours.dart';
 
 class Board extends StatefulWidget{
-  const Board({super.key});
+  final String name;
+  final int initBoardID;
+  final String board;
+  final bool boardModePlay;
+  final List<String> constraints;
+  const Board(this.initBoardID, this.constraints, this.boardModePlay, this.board, this.name, {super.key});
 
   @override
   State<Board> createState() => _BoardState();
@@ -13,10 +21,14 @@ class Board extends StatefulWidget{
 
 class _BoardState extends State<Board>
 {
-  List<Cell> board = [];
+  late String name;
+  late int boardID;
   List<Cell> selected = [];
   ButtonMode mode = ButtonMode.fixedNum;
-  bool boardModePlay = false;
+
+  List<Cell> board = [];
+  late bool boardModePlay;
+  late List<String> constraints;
 
   //list of constraints
 
@@ -68,6 +80,33 @@ class _BoardState extends State<Board>
       }
       board.add(cell);
     }
+  }
+
+  String meAsString()
+  {
+    String cells = '';
+    for (Cell cell in board)
+    {
+      String centerStr='';
+      for (final (index, num) in cell.pencilCenter.indexed)
+      {
+        if (num)
+        {
+          centerStr+='${index+1}';
+        }
+      }
+      String cornerStr='';
+      for (final (index, num) in cell.pencilCorner.indexed)
+      {
+        if (num)
+        {
+          cornerStr+='${index+1}';
+        }
+      }
+      cells+='${cell.isFixed?1:0}.${cell.num}.$centerStr.$cornerStr.${cell.baseColourID}.${cell.boxId},';
+    }
+    cells = cells.substring(0, cells.length-1);
+    return "${constraints.join()}|${boardModePlay?1:0}|$cells|$name";
   }
 
   void setMode(ButtonMode m)
@@ -123,14 +162,7 @@ class _BoardState extends State<Board>
   {
     for (Cell cell in board)
     {
-      if (cell.isSeen)
-      {
-        cell.doSeen();
-      }
-      if(Sudoku.isSeen(selectedCell, cell) && selectedCell.selected)
-      {
-        cell.doSeen();
-      } 
+      cell.doSeen(Sudoku.isSeen(selectedCell, cell) && selectedCell.selected);
     }
   }
 
@@ -143,7 +175,7 @@ class _BoardState extends State<Board>
     selected = [];
   }
   
-  void setNumber(int n, bool fixed)
+  void setNumber(int n, bool fixed) async
   {
     setState(()
     {
@@ -181,8 +213,9 @@ class _BoardState extends State<Board>
         }
       }
     });
+    boardID = await SaveLoad.saveBoard(boardID, meAsString());
   }
-  void setPencilCorner(int n)
+  void setPencilCorner(int n) async
   {
     setState(() {
       if (selected.length == 1)
@@ -200,8 +233,9 @@ class _BoardState extends State<Board>
         }
       }      
     });
+    boardID = await SaveLoad.saveBoard(boardID, meAsString());
   }
-  void setPencilCenter(int n)
+  void setPencilCenter(int n) async
   {
     setState(() {
       if (selected.length == 1)
@@ -219,8 +253,10 @@ class _BoardState extends State<Board>
         }
       }
     });
+    boardID = await SaveLoad.saveBoard(boardID, meAsString());
+
   }
-  void setColour(int n)
+  void setColour(int n) async
   {
     setState(() {
       if (selected.length == 1)
@@ -228,9 +264,11 @@ class _BoardState extends State<Board>
         selected[0].updateColour(n);
       }      
     });
+    boardID = await SaveLoad.saveBoard(boardID, meAsString());
+
   }
 
-  void boardPlayMode()
+  void boardPlayMode() async
   {
     setState(() {
       boardModePlay = true;
@@ -240,9 +278,11 @@ class _BoardState extends State<Board>
       handleSeen(board[0]);
 
     });
+    boardID = await SaveLoad.saveBoard(boardID, meAsString());
+
   }
 
-  void boardSetMode()
+  void boardSetMode() async
   {
     setState(() {
       boardModePlay = false;
@@ -254,6 +294,8 @@ class _BoardState extends State<Board>
         cell.reset();
       }
     });
+    boardID = await SaveLoad.saveBoard(boardID, meAsString());
+
   }
 
   void select(Cell thisCell) 
@@ -460,13 +502,14 @@ class _BoardState extends State<Board>
     {
       for (Cell cell in board)
         {
+          clearSelected();
           if (!cell.isFixed)
           {
             cell.num=0;
             cell.pencilCorner = [false, false, false, false, false, false, false, false, false,];
             cell.pencilCenter = [false, false, false, false, false, false, false, false, false,];
-            cell.updateColour(0);
           }
+          cell.updateColour(0);
         }    
     });
   }
@@ -489,7 +532,44 @@ class _BoardState extends State<Board>
   void initState()
   {
     super.initState();
-    _populateBoard();
+    List<String> boardCells = widget.board.split(',');
+    boardModePlay = widget.boardModePlay;
+    boardID = widget.initBoardID;
+    if (boardModePlay)
+    {
+      mode = ButtonMode.number;
+    }
+    constraints = widget.constraints;
+    name = widget.name;
+    if (widget.board=='')
+    {
+      _populateBoard();
+    }
+    else
+    {
+      int i = 0;
+      for (String cellString in boardCells)
+      {
+        List<String> cellData = cellString.split('.');
+        Cell newCell = Cell(int.parse(cellData[5]) ,i);
+        List<String> centerVals = cellData[2].split('');
+        List<String> cornerVals = cellData[3].split('');
+        newCell.isFixed = cellData[0]=='0'? false:true;
+        newCell.num = int.parse(cellData[1]);
+        for (String num in centerVals)
+        {
+          newCell.pencilCenter[int.parse(num)-1] = true;
+        }
+        for (String num in cornerVals)
+        {
+          newCell.pencilCorner[int.parse(num)-1] = true;
+        }
+        newCell.updateColour(int.parse(cellData[4]));
+        newCell.updateTextColour();
+        i++;
+        board.add(newCell);
+      }
+    }
     handleMargins(0, true);
   }
 
@@ -497,7 +577,38 @@ class _BoardState extends State<Board>
   Widget build(BuildContext context)
   {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sudoku Time!!')),
+      resizeToAvoidBottomInset : false,
+      appBar: AppBar(
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => MyHomePage())), 
+          icon: Icon(Icons.home)
+        ),
+        title: TextField( 
+          controller: TextEditingController(),
+          inputFormatters: [
+            FilteringTextInputFormatter.deny('|')
+          ],
+          maxLength: 20,
+          maxLengthEnforcement: MaxLengthEnforcement.enforced,
+          showCursor: false,
+          decoration: InputDecoration(
+            counterText: '',
+            border: InputBorder.none,
+            label: Row(children:[
+              Text('$name   '),
+              Icon(Icons.edit_note)
+              ]),
+          ),
+          onSubmitted: (String value) async
+          {
+            setState(()
+            {
+              name = value;
+            });
+            boardID = await SaveLoad.saveBoard(boardID, meAsString());
+          },
+        ),
+      ),
       body: Column(
         children: [
           Row(
@@ -515,17 +626,36 @@ class _BoardState extends State<Board>
                 child: const Text('Check'),
               ),
               ElevatedButton(
-                onPressed: () => 
-                { 
-                  if (boardModePlay)
-                  {
-                    resetPlay()
-                  }
-                  else
-                  {
-                    resetAll()
-                  }
-                },
+                onPressed: () => showDialog(
+                  context: context, 
+                  builder: (context) => AlertDialog(
+                    title: boardModePlay? Text('Clear Played Input?'):Text('Clear EVERYTHING?'),
+                    content: boardModePlay? 
+                      Text('Clears all inputed numbers, pencil marks, and colours.'):
+                      Text('This will clear all inputed numbers, pencil marks, colours, and fixed numbers.'),
+                    actions: [
+                      ElevatedButton(
+                         onPressed: () => 
+                          { 
+                            Navigator.pop(context, 'ClearBoard'),
+                            if (boardModePlay)
+                            {
+                              resetPlay()
+                            }
+                            else
+                            {
+                              resetAll()
+                            }
+                          },
+                        child: Text('Yes')
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context, 'Cancel'), 
+                        child: Text('No'))
+                    ],
+                    
+                  )
+                ),
                 child: const Text('reset'),
               ),
             ] 

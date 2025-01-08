@@ -40,6 +40,7 @@ class Sudoku
     return neighbors;
   }
 
+  
   static bool checkSolved(List<Cell> board)
   {
     for (Cell cell in board)

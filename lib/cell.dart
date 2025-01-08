@@ -21,8 +21,6 @@ class Cell {
   Color textColour = CellColours.fixedText;
 
   bool selected = false;
-  bool isSeen = false;
-  bool isSame = false;
 
   Cell(this.boxId, this.index);
 
@@ -47,7 +45,7 @@ class Cell {
     {
       isFixed = false;
     }
-    textColour = CellColours.getTextColour(selected, isSame, isFixed);
+    textColour = CellColours.getTextColour(selected, false, isFixed);
   }
   void unfix()
   {
@@ -67,7 +65,7 @@ class Cell {
   void doSelect()
   {
     selected = !selected;
-    colour = CellColours.getNewColour(baseColourID, selected, isSeen);
+    colour = CellColours.getNewColour(baseColourID, selected, false);
   }
   
   void doSameNum(bool same)
@@ -75,25 +73,27 @@ class Cell {
     textColour = CellColours.getTextColour(selected, same, isFixed);
   }
 
-  void doSeen()
+  void doSeen(bool seen)
   {
-    isSeen = !isSeen;
-    colour = CellColours.getNewColour(baseColourID, selected, isSeen);
+    colour = CellColours.getNewColour(baseColourID, selected, seen);
   }
 
   void reset()
   {
-    isSeen = false;
-    isSame = false;
     selected = false;
-    colour = CellColours.getNewColour(baseColourID, selected, isSeen);
-    textColour = CellColours.getTextColour(selected, isSame, isFixed);
+    colour = CellColours.getNewColour(baseColourID, selected, false);
+    textColour = CellColours.getTextColour(selected, false, isFixed);
   }
 
   void updateColour(int newID)
   {
     baseColourID = newID;
-    colour = CellColours.getNewColour(baseColourID, selected, isSeen);
+    colour = CellColours.getNewColour(baseColourID, selected, false);
+  }
+
+  void updateTextColour()
+  {
+    textColour = CellColours.getTextColour(selected, false, isFixed);
   }
 
   void updateMargins(List<Cell> neighbors)
