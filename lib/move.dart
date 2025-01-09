@@ -1,0 +1,1 @@
+enum Move {number, pencilCenter, centerZero, pencilCorner, cornerZero, colour}

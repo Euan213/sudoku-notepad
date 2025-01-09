@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/buttonMode.dart';
 import 'package:sudoku_notepad/main.dart';
+import 'package:sudoku_notepad/move.dart';
 import 'package:sudoku_notepad/saveLoad.dart';
 import 'package:sudoku_notepad/sudoku.dart';
 import 'package:sudoku_notepad/cellColours.dart';
@@ -25,8 +26,10 @@ class _BoardState extends State<Board>
 {
   late String name;
   late int boardID;
+  var undoHistory = [];
   List<Cell> selected = [];
   ButtonMode mode = ButtonMode.fixedNum;
+  DateTime now = DateTime.now();
 
   List<Cell> board = [];
   late bool boardModePlay;
@@ -177,97 +180,119 @@ class _BoardState extends State<Board>
     selected = [];
   }
   
-  void setNumber(int n, bool fixed) async
+  void setNumber(int n, Cell cell, bool fixed) async
   {
     setState(()
     {
       if (!fixed)
-      {
-        if (selected.length == 1)
+      { 
+        if (!cell.isFixed)
         {
-            if (!selected[0].isFixed)
-            {
-            if (selected[0].num == n)
-            {
-              selected[0].num = 0;
-              handleSameNum(0);
-            }
-            else
-            {
-            selected[0].num = n;
-            handleSameNum(n);        
-            } 
+          if (cell.num == n)
+          {
+            cell.num = 0;
+            handleSameNum(0);
           }
+          else
+          {
+          cell.num = n;
+          handleSameNum(n);        
+          } 
         }
       }
       else
       {
         if (selected.length == 1)
         {
-          if (selected[0].num == n)
+          if (cell.num == n)
           {
-            selected[0].doFixedNum(n);
+            cell.doFixedNum(n);
           }
           else
           {
-            selected[0].doFixedNum(n);
+            cell.doFixedNum(n);
           }
         }
       }
     });
     boardID = await SaveLoad.saveBoard(boardID, meAsString());
   }
-  void setPencilCorner(int n) async
+  void setPencilCorner(int n, Cell cell) async
   {
     setState(() {
-      if (selected.length == 1)
+      if (n == 0)
       {
-        if (n == 0)
+        for (int number=0; number <= 8; number++)
         {
-          for (int number=0; number <= 8; number++)
-          {
-            selected[0].pencilCorner[number] = false;
-          }
+          cell.pencilCorner[number] = false;
         }
-        else 
-        {
-          selected[0].pencilCorner[n-1] = !selected[0].pencilCorner[n-1];
-        }
-      }      
+      }
+      else 
+      {
+        cell.pencilCorner[n-1] = !cell.pencilCorner[n-1];
+      }  
     });
     boardID = await SaveLoad.saveBoard(boardID, meAsString());
   }
-  void setPencilCenter(int n) async
+  void setPencilCenter(int n, Cell cell) async
   {
     setState(() {
-      if (selected.length == 1)
+      if (n == 0)
       {
-        if (n == 0)
+        for (int number=0; number <= 8; number++)
         {
-          for (int number=0; number <= 8; number++)
-          {
-            selected[0].pencilCenter[number] = false;
-          }
+          cell.pencilCenter[number] = false;
         }
-        else 
-        {
-          selected[0].pencilCenter[n-1] = !selected[0].pencilCenter[n-1];
-        }
+      }
+      else 
+      {
+        cell.pencilCenter[n-1] = !cell.pencilCenter[n-1];
       }
     });
     boardID = await SaveLoad.saveBoard(boardID, meAsString());
 
   }
-  void setColour(int n) async
+  void setColour(int n, Cell cell) async
   {
     setState(() {
-      if (selected.length == 1)
-      {
-        selected[0].updateColour(n);
-      }      
+      cell.updateColour(n);
     });
     boardID = await SaveLoad.saveBoard(boardID, meAsString());
+  }
 
+  void _doUndo()
+  {
+    setState(() {
+      if(undoHistory.isNotEmpty)
+      {
+        var move = undoHistory.removeLast();
+        switch(move[0])
+        {
+          case Move.number:
+            setNumber(move[2], board[move[1]], false);
+          case Move.pencilCenter:
+            setPencilCenter(move[2], board[move[1]]);
+          case Move.pencilCorner:
+            setPencilCorner(move[2], board[move[1]]);
+          case Move.colour:
+            setColour(move[2], board[move[1]]);
+          case Move.centerZero:
+            int number = 1;
+            for(bool needsUndone in move[2])
+            {
+              if(needsUndone)setPencilCenter(number, board[move[1]]);
+              number += 1;
+            }
+          case Move.cornerZero:
+            int number = 1;
+            for(bool needsUndone in move[2])
+            {
+              if(needsUndone)setPencilCorner(number, board[move[1]]);
+              number += 1;
+            }
+        }
+      }
+    });
   }
 
   void boardPlayMode() async
@@ -438,29 +463,64 @@ class _BoardState extends State<Board>
     switch (mode)
     {
       case ButtonMode.number:
-        onPressFunction =()=> setNumber(number, false);
+        onPressFunction =()=> 
+        {
+          if(selected.isNotEmpty)
+          {
+            undoHistory.add([Move.number, selected[0].index, selected[0].num]),
+            setNumber(number, selected[0], false),
+          }
+        };
         textStyle = TextStyle(color: Colors.black, fontSize: 40);//DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4);
         child = Text(textVal, style: textStyle);
       case ButtonMode.fixedNum:
-        onPressFunction =()=> setNumber(number, true);
+        onPressFunction =()=> 
+        {
+          if(selected.isNotEmpty){
+            setNumber(number, selected[0], true),
+          }
+        };
         textStyle = TextStyle(color: const Color.fromARGB(255, 34, 104, 36), fontSize: 40);
         child = FittedBox(
           fit: BoxFit.contain,
           child: Text(textVal, style: textStyle),
           );
       case ButtonMode.colour:
-        onPressFunction =()=> setColour(number);
+        onPressFunction =()=> 
+        {
+          if(selected.isNotEmpty)
+          {
+            undoHistory.add([Move.colour, selected[0].index, selected[0].getColourId()]),
+            setColour(number, selected[0]),
+          },
+        };
         textStyle = TextStyle();
         colour = CellColours.baseColours[number];
         textVal = "";
         child = Text(textVal, style: textStyle);
       case ButtonMode.pencilCenter:
-        onPressFunction =()=> setPencilCenter(number);
+        onPressFunction =()=> 
+        {
+          if(selected.isNotEmpty)
+          {
+            number!=0?undoHistory.add([Move.pencilCenter, selected[0].index, number]):
+              undoHistory.add([Move.centerZero, selected[0].index, [...selected[0].pencilCenter]]),
+            setPencilCenter(number, selected[0]),
+          }
+        };
         textStyle = TextStyle(fontSize: 20, color: Colors.black,);
         child = Text(textVal, style: textStyle);
       case ButtonMode.pencilCorner:
         textStyle = TextStyle(color: Colors.black);
-        onPressFunction =()=> setPencilCorner(number);
+        onPressFunction =()=> 
+        {
+          if(selected.isNotEmpty)
+          {
+            number!=0?undoHistory.add([Move.pencilCorner, selected[0].index, number]):
+              undoHistory.add([Move.cornerZero, selected[0].index, [...selected[0].pencilCorner]]),
+            setPencilCorner(number, selected[0]),
+          }
+        };
         child = Text(textVal, style: textStyle); //TODO - make pretty, text icons should appear at correct corner of buttons
         // GridView.builder(
         //   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3), 
@@ -502,6 +562,7 @@ class _BoardState extends State<Board>
   {
     setState(() 
     {
+      undoHistory = [];
       for (Cell cell in board)
         {
           clearSelected();
@@ -521,6 +582,7 @@ class _BoardState extends State<Board>
   {
     setState(() 
     {
+      undoHistory = [];
       for (Cell cell in board)
         {
           cell.unfix();
@@ -619,39 +681,31 @@ class _BoardState extends State<Board>
             child: Row(
               spacing: 10,
               children: [
-                ElevatedButton(
-                  onPressed: () => boardPlayMode(),
-                  child: const Text('Play Mode'),
+                ElevatedButton( // set mode button | play mode button
+                  onPressed: () => boardModePlay? boardSetMode():boardPlayMode(),
+                  child: Text(boardModePlay?'Set Mode':'Play Mode'),
                 ),
-                ElevatedButton(
-                  onPressed: () => boardSetMode(),
-                  child: const Text('Set Mode'),
-                ),
+                ElevatedButton( //Undo button
+                  onPressed: ()=> _doUndo(), 
+                  child: Text('undo')),
                 ElevatedButton(
                   onPressed: () => checkSol(),
                   child: const Text('Check'),
                 ),
-                ElevatedButton(
+                ElevatedButton(  // reset button
                   onPressed: () => showDialog(
                     context: context, 
                     builder: (context) => AlertDialog(
-                      title: boardModePlay? Text('Clear Played Input?'):Text('Clear EVERYTHING?'),
-                      content: boardModePlay? 
-                        Text('Clears all inputed numbers, pencil marks, and colours.'):
-                        Text('This will clear all inputed numbers, pencil marks, colours, and fixed numbers.'),
+                      title:  Text(boardModePlay?'Clear Played Input?':'Clear EVERYTHING?'),
+                      content:  
+                        Text(boardModePlay?'Clears all inputed numbers, pencil marks, colours and undo history. This action cannot be undone.'
+                          :'This will empty the board. Everything will be gone, including fixed numbers and undo history.'),
                       actions: [
-                        ElevatedButton(
+                        ElevatedButton( 
                           onPressed: () => 
                             { 
                               Navigator.pop(context, 'ClearBoard'),
-                              if (boardModePlay)
-                              {
-                                resetPlay()
-                              }
-                              else
-                              {
-                                resetAll()
-                              }
+                              boardModePlay? resetPlay():resetAll(),
                             },
                           child: Text('Yes')
                         ),
@@ -663,7 +717,7 @@ class _BoardState extends State<Board>
                   ),
                   child: const Text('reset'),
                 ),
-                ElevatedButton(
+                ElevatedButton( //hints button
                   onPressed: ()
                   {
                     for (Cell cell in board)

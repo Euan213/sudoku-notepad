@@ -111,8 +111,6 @@ class Sudoku
 
   static List<Hint> _hiddenSingleSearch(List<List<List<bool>>> sector, HintType type)
   {
-    print('looking for hidden singles in your area');
-    print(type.name);
     List<Hint> hints = [];
     Hint newHint;
     List<int> timesAppeared;
@@ -128,7 +126,6 @@ class Sudoku
         }
         timesAppeared.add(iCount);
       }
-      print(timesAppeared);
       for(int num in timesAppeared)
       {
         if (num==1) 
@@ -192,7 +189,6 @@ class Sudoku
       if(hint.cellIds.isEmpty&&hint.sector==HintType.box)hint.cellIds=_getBoxMembers(hint.sectorId, board);
       if(hint.cellIds.isEmpty&&hint.sector==HintType.row)hint.cellIds=_getRowMembers(hint.sectorId);
       if(hint.cellIds.isEmpty&&hint.sector==HintType.column)hint.cellIds=_getColumnMembers(hint.sectorId);
-      print('${hint.cellIds} + ${hint.sector}');
     }
 
     return hints;
