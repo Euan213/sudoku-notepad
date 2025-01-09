@@ -73,6 +73,7 @@ class SaveLoad
         saves[index] = board;
       }catch (e)
       {
+        print(e);
         return index;
       }
       

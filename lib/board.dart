@@ -6,6 +6,8 @@ import 'package:sudoku_notepad/main.dart';
 import 'package:sudoku_notepad/saveLoad.dart';
 import 'package:sudoku_notepad/sudoku.dart';
 import 'package:sudoku_notepad/cellColours.dart';
+import 'package:sudoku_notepad/hint.dart';
+
 
 class Board extends StatefulWidget{
   final String name;
@@ -103,7 +105,7 @@ class _BoardState extends State<Board>
           cornerStr+='${index+1}';
         }
       }
-      cells+='${cell.isFixed?1:0}.${cell.num}.$centerStr.$cornerStr.${cell.baseColourID}.${cell.boxId},';
+      cells+='${cell.isFixed?1:0}.${cell.num}.$centerStr.$cornerStr.${cell.getColourId()}.${cell.boxId},';
     }
     cells = cells.substring(0, cells.length-1);
     return "${constraints.join()}|${boardModePlay?1:0}|$cells|$name";
@@ -510,6 +512,7 @@ class _BoardState extends State<Board>
             cell.pencilCenter = [false, false, false, false, false, false, false, false, false,];
           }
           cell.updateColour(0);
+          cell.updateTextColour();
         }    
     });
   }
@@ -611,54 +614,161 @@ class _BoardState extends State<Board>
       ),
       body: Column(
         children: [
-          Row(
-            children: [
-              ElevatedButton(
-                onPressed: () => boardPlayMode(),
-                child: const Text('Play Mode'),
-              ),
-              ElevatedButton(
-                onPressed: () => boardSetMode(),
-                child: const Text('Set Mode'),
-              ),
-              ElevatedButton(
-                onPressed: () => checkSol(),
-                child: const Text('Check'),
-              ),
-              ElevatedButton(
-                onPressed: () => showDialog(
-                  context: context, 
-                  builder: (context) => AlertDialog(
-                    title: boardModePlay? Text('Clear Played Input?'):Text('Clear EVERYTHING?'),
-                    content: boardModePlay? 
-                      Text('Clears all inputed numbers, pencil marks, and colours.'):
-                      Text('This will clear all inputed numbers, pencil marks, colours, and fixed numbers.'),
-                    actions: [
-                      ElevatedButton(
-                         onPressed: () => 
-                          { 
-                            Navigator.pop(context, 'ClearBoard'),
-                            if (boardModePlay)
-                            {
-                              resetPlay()
-                            }
-                            else
-                            {
-                              resetAll()
-                            }
-                          },
-                        child: Text('Yes')
-                      ),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context, 'Cancel'), 
-                        child: Text('No'))
-                    ],
-                    
-                  )
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              spacing: 10,
+              children: [
+                ElevatedButton(
+                  onPressed: () => boardPlayMode(),
+                  child: const Text('Play Mode'),
                 ),
-                child: const Text('reset'),
-              ),
-            ] 
+                ElevatedButton(
+                  onPressed: () => boardSetMode(),
+                  child: const Text('Set Mode'),
+                ),
+                ElevatedButton(
+                  onPressed: () => checkSol(),
+                  child: const Text('Check'),
+                ),
+                ElevatedButton(
+                  onPressed: () => showDialog(
+                    context: context, 
+                    builder: (context) => AlertDialog(
+                      title: boardModePlay? Text('Clear Played Input?'):Text('Clear EVERYTHING?'),
+                      content: boardModePlay? 
+                        Text('Clears all inputed numbers, pencil marks, and colours.'):
+                        Text('This will clear all inputed numbers, pencil marks, colours, and fixed numbers.'),
+                      actions: [
+                        ElevatedButton(
+                          onPressed: () => 
+                            { 
+                              Navigator.pop(context, 'ClearBoard'),
+                              if (boardModePlay)
+                              {
+                                resetPlay()
+                              }
+                              else
+                              {
+                                resetAll()
+                              }
+                            },
+                          child: Text('Yes')
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, 'Cancel'), 
+                          child: Text('No'))
+                      ],
+                    )
+                  ),
+                  child: const Text('reset'),
+                ),
+                ElevatedButton(
+                  onPressed: ()
+                  {
+                    for (Cell cell in board)
+                    {
+                      cell.possibleVals= Sudoku.getPossibilities(board, cell);
+                    }
+
+                    List<Hint> hints = Sudoku.getHints(board);
+                    int hintIndex = -1;
+                    String nextText = hints.isEmpty?'Close':'Show Hints';
+
+                    showDialog(
+                      context: context, 
+                      builder: (context)  
+                      {
+                        if (hintIndex>=0)
+                        {
+                          for(int index in hints[hintIndex].cellIds)
+                          {
+                            board[index].hint();
+                          }
+                        }
+                        return StatefulBuilder(
+                          builder: (context, setAlertState)
+                          {
+                            return AlertDialog(
+                              title: Text('Hint!'),
+                              content: Text(hints.isEmpty?'Couldnt find any hints!':
+                                            hintIndex==-1?'You are about to look at some hints, are you sure you want to admit defeat?':
+                                            hints[hintIndex].text),
+                              actions: [
+                                ElevatedButton(
+                                  onPressed: () => 
+                                    { 
+                                      Navigator.pop(context, 'CloseHints'),
+                                      
+                                      if (hintIndex>-1)
+                                      for (int index in hints[hintIndex].cellIds)
+                                      {
+                                        board[index].unHint(),
+                                      }
+                                      
+                                    },
+                                  child: Text(hintIndex==-1?'Keep Trying':'Ok')
+                                ),
+                                ElevatedButton(
+                                  onPressed: () =>
+                                  {
+                                    if (hints.isEmpty)
+                                    {
+                                      Navigator.pop(context, 'close')
+                                    }
+                                    else if(hintIndex==hints.length-1)
+                                    {
+                                      setState((){
+                                        for (int index in hints[hintIndex].cellIds)
+                                        {
+                                          board[index].unHint();
+                                        }
+                                      }),
+                                      Navigator.pop(context, 'close')
+                                    }
+                                    else
+                                    {
+                                      setAlertState(()
+                                      {
+                                        setState(() {
+                                          if(hintIndex==-1)
+                                          {
+                                              clearSelected();
+                                              handleSeen(board[0]);
+                                          }
+                                          if(hintIndex>-1)
+                                          {
+                                            for (int index in hints[hintIndex].cellIds)
+                                            {
+                                              board[index].unHint();
+                                            }
+                                          }
+                                          hintIndex+=1;
+                                          nextText = hintIndex==hints.length-1? 'Close':'Next Hint';
+                                          if (!hints.isEmpty)
+                                          {
+                                            for (int index in hints[hintIndex].cellIds)
+                                            {
+                                              board[index].hint();
+                                            } 
+                                          }
+                                        });
+                                      }), 
+                                    }
+                                  },
+                                  child: Text(nextText)
+                                ),
+                              ],
+                            );
+                          }
+                        );
+                      }
+                    );
+                  },
+                  child: Text('Hints Pls'),
+                ),
+              ] 
+            ),
           ),
           Container(
             margin: const EdgeInsets.all(5),
@@ -675,13 +785,7 @@ class _BoardState extends State<Board>
               {
                 Cell cell = board[index];
                 return Container(
-                  color: () {
-                    if (cell.selected)
-                    {
-                      return CellColours.selectedMargin;
-                    }
-                    return CellColours.notSelectedMargin;
-                  }(),
+                  color: cell.marginColour,
                   child: cellDisplay(cell),
                 );
               },

@@ -1,0 +1,1 @@
+enum MarginType{base, hint, selected}

@@ -1,4 +1,6 @@
 import 'package:sudoku_notepad/cell.dart';
+import 'package:sudoku_notepad/hint.dart';
+import 'package:sudoku_notepad/hintType.dart';
 
 class Sudoku
 {
@@ -40,7 +42,47 @@ class Sudoku
     return neighbors;
   }
 
-  
+  static List<int> _getBoxMembers(int? id, List<Cell> board)
+  { 
+    List<int> cells = [];
+    for(Cell cell in board)
+    {
+      if(cell.boxId==id)cells.add(cell.index);
+    }
+    return cells;
+  }
+  static List<int> _getRowMembers(int? id)
+  {
+    int index = id!*9;
+    List<int> list=[];
+
+    do
+    {
+      list.add(index);
+      index+=1;
+    }while (index%9!=0&&index!=id*9);
+    return list;
+  }
+    static List<int> _getColumnMembers(int? id)
+  {
+    int? index = id;
+    List<int> list=[];
+    while (index!<81)
+    {
+      list.add(index);
+      index+=9;
+    }
+    index=id;
+    while (index!>=0)
+    {
+      if(!list.contains(index))list.add(index);
+      index-=9;
+    }
+    return list;
+  }
+
+
+
   static bool checkSolved(List<Cell> board)
   {
     for (Cell cell in board)
@@ -50,4 +92,109 @@ class Sudoku
     return true;
   }
 
+  static List<bool> getPossibilities(List<Cell> board, Cell forThis)
+  {
+    List<bool> possible = [true,true,true,true,true,true,true,true,true];
+    if (forThis.num != 0 )
+    {
+      return possible.map((element) => (!element)).toList();
+    }
+    for (Cell cell in board)
+    {
+      if (isSeen(forThis, cell) && cell.num!=0)
+      { 
+        possible[cell.num-1] = false;
+      }
+    }
+    return possible;
+  }
+
+  static List<Hint> _hiddenSingleSearch(List<List<List<bool>>> sector, HintType type)
+  {
+    print('looking for hidden singles in your area');
+    print(type.name);
+    List<Hint> hints = [];
+    Hint newHint;
+    List<int> timesAppeared;
+    for(final (sectorNum, subsec) in sector.indexed)
+    {
+      timesAppeared = [];
+      for(int i=0; i<9; i++)
+      {
+        int iCount = 0;
+        for(List<bool> cell in subsec)
+        {
+          if(cell[i])iCount++;
+        }
+        timesAppeared.add(iCount);
+      }
+      print(timesAppeared);
+      for(int num in timesAppeared)
+      {
+        if (num==1) 
+        {
+        newHint = Hint(HintType.hiddenSingle, [], type);
+        newHint.sectorId = sectorNum;
+        hints.add(newHint);
+        }
+      }
+    }
+    return hints;
+  }
+
+  static List<Hint> getHints(List<Cell> board)
+  {
+    List<Hint> hints = [];
+    int trueCount;
+
+    List<List<List<bool>>> rows = [[],[],[],[],[],[],[],[],[]];
+    List<List<List<bool>>> cols = [[],[],[],[],[],[],[],[],[]];
+    List<List<List<bool>>> boxes = [[],[],[],[],[],[],[],[],[]];
+
+    for (Cell cell in board)
+    {
+      for (Cell compareCell in board)
+      {
+        if (isSeen(cell, compareCell) && cell.num==compareCell.num && cell.num!=0 && cell.index!=compareCell.index)
+        {
+          return [Hint(HintType.mistake, [cell.index, compareCell.index,], null)];
+        }
+        // -- hints that require 2 cells compared can go here
+      }
+
+      if (cell.num == 0)
+      {
+        if (!cell.possibleVals.contains(true))
+        {
+        return [Hint(HintType.assumptionError, [cell.index], null)];
+        }
+
+        trueCount = 0;
+        for (bool number in cell.possibleVals)
+        {
+          if(number) trueCount+=1;
+        }
+        if (trueCount==1)
+        {
+          hints.add(Hint(HintType.nakedSingle, [cell.index], null)); 
+        }
+      }
+      rows[cell.index~/9].add(cell.num==0?cell.possibleVals:[false,false,false,false,false,false,false,false,false]);
+      cols[cell.index%9].add(cell.num==0?cell.possibleVals:[false,false,false,false,false,false,false,false,false]);
+      boxes[cell.boxId].add(cell.num==0?cell.possibleVals:[false,false,false,false,false,false,false,false,false]);
+    }
+    hints += _hiddenSingleSearch(rows, HintType.row);
+    hints += _hiddenSingleSearch(cols, HintType.column);
+    hints += _hiddenSingleSearch(boxes, HintType.box);
+
+    for (Hint hint in hints)
+    {
+      if(hint.cellIds.isEmpty&&hint.sector==HintType.box)hint.cellIds=_getBoxMembers(hint.sectorId, board);
+      if(hint.cellIds.isEmpty&&hint.sector==HintType.row)hint.cellIds=_getRowMembers(hint.sectorId);
+      if(hint.cellIds.isEmpty&&hint.sector==HintType.column)hint.cellIds=_getColumnMembers(hint.sectorId);
+      print('${hint.cellIds} + ${hint.sector}');
+    }
+
+    return hints;
+  } 
 }

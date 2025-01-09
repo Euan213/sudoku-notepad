@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sudoku_notepad/cellColours.dart';
+import 'package:sudoku_notepad/marginType.dart';
 import 'package:sudoku_notepad/sudoku.dart';
 
 class Cell {
-
   int index;
   int boxId;
   bool isFixed = false;
@@ -16,9 +16,11 @@ class Cell {
   int num = 0;
   List<bool> pencilCorner = [false, false, false, false, false, false, false, false, false,];
   List<bool> pencilCenter = [false, false, false, false, false, false, false, false, false,];
-  int baseColourID = 0;
+  List<bool> possibleVals = [false, false, false, false, false, false, false, false, false,];
+  int _baseColourId = 0;
   Color colour = CellColours.baseColours[0];
   Color textColour = CellColours.fixedText;
+  Color marginColour = CellColours.notSelectedMargin;
 
   bool selected = false;
 
@@ -32,6 +34,11 @@ class Cell {
   int getIndex()
   {
     return(index);
+  }
+
+  int getColourId()
+  {
+    return(_baseColourId);
   }
 
   void doFixedNum(int n)
@@ -65,7 +72,8 @@ class Cell {
   void doSelect()
   {
     selected = !selected;
-    colour = CellColours.getNewColour(baseColourID, selected, false);
+    updateMarginColour(selected? MarginType.selected:MarginType.base);
+    colour = CellColours.getNewColour(_baseColourId, selected, false);
   }
   
   void doSameNum(bool same)
@@ -75,25 +83,49 @@ class Cell {
 
   void doSeen(bool seen)
   {
-    colour = CellColours.getNewColour(baseColourID, selected, seen);
+    colour = CellColours.getNewColour(_baseColourId, selected, seen);
   }
 
   void reset()
   {
     selected = false;
-    colour = CellColours.getNewColour(baseColourID, selected, false);
+    colour = CellColours.getNewColour(_baseColourId, selected, false);
     textColour = CellColours.getTextColour(selected, false, isFixed);
   }
 
   void updateColour(int newID)
   {
-    baseColourID = newID;
-    colour = CellColours.getNewColour(baseColourID, selected, false);
+    _baseColourId = newID;
+    colour = CellColours.getNewColour(_baseColourId, selected, false);
   }
 
   void updateTextColour()
   {
     textColour = CellColours.getTextColour(selected, false, isFixed);
+  }
+
+  void updateMarginColour(MarginType type)
+  {
+    switch(type)
+    {
+      case MarginType.base:
+        marginColour = CellColours.notSelectedMargin;
+      case MarginType.selected:
+        marginColour = CellColours.selectedMargin;
+      case MarginType.hint:
+        marginColour = CellColours.hintMargin;
+    }
+  }
+
+  void hint()
+  {
+    colour = Color.alphaBlend(CellColours.hintHighlighter, colour);
+    updateMarginColour(MarginType.hint);
+  }
+  void unHint()
+  {
+    colour = CellColours.getNewColour(_baseColourId, selected, false);
+    updateMarginColour(MarginType.base);
   }
 
   void updateMargins(List<Cell> neighbors)
