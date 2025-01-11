@@ -8,14 +8,14 @@ class CellColours
                          Color.fromARGB(255, 251, 228, 184),
                          Colors.blue, 
                          Colors.red, 
-                         Colors.yellow, 
+                         Colors.cyan, 
                          Colors.green, 
-                         Colors.pink, 
+                         Colors.pinkAccent, 
                          Colors.purple, 
                          Colors.brown, 
                          Colors.orange, 
                          Colors.grey];
-  static Color fixed = const Color.fromARGB(255, 125, 103, 255);
+  static Color setMode = const Color.fromARGB(255, 202, 193, 255);
   static Color sameNumText = const Color.fromARGB(255, 76, 173, 185);
   static Color fixedText = const Color.fromARGB(255, 1, 97, 4);
   static Color baseText = Colors.black;
@@ -25,8 +25,6 @@ class CellColours
   static Color notSelectedMargin = Colors.black;
   static Color hintMargin = const Color.fromARGB(255, 15, 227, 255);
   static Color hintHighlighter = const Color.fromARGB(136, 15, 227, 255);
-
-
 
 static Color getNewColour(int baseID, bool selected, bool seen,)
   {
@@ -41,7 +39,8 @@ static Color getNewColour(int baseID, bool selected, bool seen,)
     }
     return newColour;
   }
-  static Color getTextColour(bool selected, bool same, bool fixed)
+
+static Color getTextColour(bool selected, bool same, bool fixed)
   {
     if (same && !selected)
     {

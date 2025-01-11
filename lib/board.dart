@@ -29,7 +29,7 @@ class _BoardState extends State<Board>
   var undoHistory = [];
   List<Cell> selected = [];
   ButtonMode mode = ButtonMode.fixedNum;
-  DateTime now = DateTime.now();
+  DateTime lastSave = DateTime.now();
 
   List<Cell> board = [];
   late bool boardModePlay;
@@ -122,14 +122,14 @@ class _BoardState extends State<Board>
     });
   }
 
-  List<Cell> checkNeighbors(List<int> indexes, Cell cell)
+  List<Cell> _getNeighborsFromIndexes(List<int> indexes, Cell cell)
   {
     List<Cell> neighbors = [];
     for (int index in indexes)
     {
       if (index == -1)
       {
-        neighbors.add(cell);
+        neighbors.add(cell); //maintain error value to maintain position of each neighbor in list
       }
       else{
         neighbors.add(board[index]);
@@ -138,20 +138,13 @@ class _BoardState extends State<Board>
     return neighbors;
   }
 
-  void handleMargins(int i, bool all)
+  void handleMargins(List<Cell> cells)
   {
-    if (!all)
+    List<Cell> neighbors;
+    for(Cell cell in cells)
     {
-      Cell cell = board[i];
-      List<Cell> neighbors = checkNeighbors(Sudoku.getNeighbors(cell), cell);
+      neighbors = _getNeighborsFromIndexes(Sudoku.getNeighbors(cell), cell);
       cell.updateMargins(neighbors);
-    }else
-    {
-      for (Cell cell in board)
-      {
-        List<Cell> neighbors = checkNeighbors(Sudoku.getNeighbors(cell), cell);
-        cell.updateMargins(neighbors);
-      }
     }
   }
 
@@ -180,7 +173,7 @@ class _BoardState extends State<Board>
     selected = [];
   }
   
-  void setNumber(int n, Cell cell, bool fixed) async
+  void setNumber(int n, Cell cell, bool fixed)
   {
     setState(()
     {
@@ -215,9 +208,10 @@ class _BoardState extends State<Board>
         }
       }
     });
-    boardID = await SaveLoad.saveBoard(boardID, meAsString());
+    _doSave();
   }
-  void setPencilCorner(int n, Cell cell) async
+
+  void setPencilCorner(int n, Cell cell)
   {
     setState(() {
       if (n == 0)
@@ -232,9 +226,10 @@ class _BoardState extends State<Board>
         cell.pencilCorner[n-1] = !cell.pencilCorner[n-1];
       }  
     });
-    boardID = await SaveLoad.saveBoard(boardID, meAsString());
+    _doSave();
   }
-  void setPencilCenter(int n, Cell cell) async
+  
+  void setPencilCenter(int n, Cell cell)
   {
     setState(() {
       if (n == 0)
@@ -249,16 +244,32 @@ class _BoardState extends State<Board>
         cell.pencilCenter[n-1] = !cell.pencilCenter[n-1];
       }
     });
-    boardID = await SaveLoad.saveBoard(boardID, meAsString());
-
+    _doSave();
   }
-  void setColour(int n, Cell cell) async
+  
+  void setColour(int n, Cell cell)
   {
     setState(() {
       cell.updateColour(n);
     });
-    boardID = await SaveLoad.saveBoard(boardID, meAsString());
+    _doSave();
   }
+
+  void _setBoxId(int boxId)
+  {
+    setState(() {
+      if(selected.isNotEmpty)
+      {
+        for(Cell cell in selected)
+        {
+          cell.boxId = boxId;
+          handleMargins(_getNeighborsFromIndexes(Sudoku.getNeighbors(cell),cell));
+          handleMargins([cell]);
+        }
+      }
+    });
+    _doSave();
+  } 
 
   void _doUndo()
   {
@@ -295,7 +306,7 @@ class _BoardState extends State<Board>
     });
   }
 
-  void boardPlayMode() async
+  void boardPlayMode()
   {
     setState(() {
       boardModePlay = true;
@@ -305,11 +316,10 @@ class _BoardState extends State<Board>
       handleSeen(board[0]);
 
     });
-    boardID = await SaveLoad.saveBoard(boardID, meAsString());
-
+    _doSave();
   }
 
-  void boardSetMode() async
+  void boardSetMode()
   {
     setState(() {
       boardModePlay = false;
@@ -321,8 +331,7 @@ class _BoardState extends State<Board>
         cell.reset();
       }
     });
-    boardID = await SaveLoad.saveBoard(boardID, meAsString());
-
+    _doSave();
   }
 
   void select(Cell thisCell) 
@@ -365,90 +374,259 @@ class _BoardState extends State<Board>
     }
   }
 
-  InkWell cellDisplay(Cell cell)
+  Container cellDisplay(Cell cell)
   {
     Widget child;
     Alignment alignment;
-    if (cell.num != 0)
+    if(mode == ButtonMode.jigsaw)
     {
+      cell.marginColour = CellColours.baseColours[cell.boxId];
       alignment = Alignment.center;
       child = FittedBox(
         fit: BoxFit.contain,
         child: Text(
-          '${cell.num}',
-          style: TextStyle(fontSize: 40, color: cell.textColour)
+          String.fromCharCode(cell.boxId+65),
+          style: TextStyle(fontSize: 40, color: CellColours.baseColours[cell.boxId])
         ), 
       );
-    }
-    else if(cell.pencilCenter.contains(true))
+    }else
     {
-      alignment = Alignment.center;
-      String txtStr = '';
-      for (int i = 0; i <= 8; i++)
+      cell.marginColour = CellColours.notSelectedMargin;
+      if (cell.num != 0)
       {
-        if (cell.pencilCenter[i])
-        {
-          txtStr += '${i+1}';
-        }
+        alignment = Alignment.center;
+        child = FittedBox(
+          fit: BoxFit.contain,
+          child: Text(
+            '${cell.num}',
+            style: TextStyle(fontSize: 40, color: cell.textColour)
+          ), 
+        );
       }
-      child = FittedBox(
-        fit: BoxFit.fitWidth,
-        child: Text(txtStr,),
-      );
-    }
-    else if (cell.pencilCorner.contains(true))
-    {
-      List<Alignment> alignments = const [Alignment.topLeft,    Alignment.topCenter,    Alignment.topRight,
-                                          Alignment.centerLeft, Alignment.center,       Alignment.centerRight,
-                                          Alignment.bottomLeft, Alignment.bottomCenter, Alignment.bottomRight,];
-      alignment = Alignment.center;
-      child = Stack(
-        children: [for (int i=0; i<=8; i++) Container(
-          alignment: alignments[i],
-          child: () {
-            if(cell.pencilCorner[i])
-            {
-              return FittedBox (
-                fit: BoxFit.contain,
-                child: Text(
-                  ' ${i+1} ', 
-                  style: TextStyle(fontSize:12, color: Colors.black),
-                ),
-              );
-            }
-            return Text('');
-          }(),
-        )],
-      );
-    }
-    else
-    {
-      alignment = Alignment.center;
-      child = Text('');
-    }
-    return InkWell(
-      onTap: () => select(cell),
-      child: Container(
-        alignment: alignment,
-        color: () {
-          if (boardModePlay)
+      else if(cell.pencilCenter.contains(true))
+      {
+        alignment = Alignment.center;
+        String txtStr = '';
+        for (int i = 0; i <= 8; i++)
+        {
+          if (cell.pencilCenter[i])
           {
-            return cell.colour;
+            txtStr += '${i+1}';
           }
-          return CellColours.fixed;
-        }(),
-        margin: EdgeInsets.only(
-          left: cell.leftMargin,
-          right: cell.rightMargin,
-          top: cell.topMargin,
-          bottom: cell.bottomMargin,
-        ),
-        child: child,
-      )
+        }
+        child = FittedBox(
+          fit: BoxFit.fitWidth,
+          child: Text(txtStr,),
+        );
+      }
+      else if (cell.pencilCorner.contains(true))
+      {
+        List<Alignment> alignments = const [Alignment.topLeft,    Alignment.topCenter,    Alignment.topRight,
+                                            Alignment.centerLeft, Alignment.center,       Alignment.centerRight,
+                                            Alignment.bottomLeft, Alignment.bottomCenter, Alignment.bottomRight,];
+        alignment = Alignment.center;
+        child = Stack(
+          children: [for (int i=0; i<=8; i++) Container(
+            alignment: alignments[i],
+            child: () {
+              if(cell.pencilCorner[i])
+              {
+                return FittedBox (
+                  fit: BoxFit.contain,
+                  child: Text(
+                    ' ${i+1} ', 
+                    style: TextStyle(fontSize:12, color: Colors.black),
+                  ),
+                );
+              }
+              return Text('');
+            }(),
+          )],
+        );
+      }
+      else
+      {
+        alignment = Alignment.center;
+        child = Text('');
+      }      
+    }
+    if(cell.selected)cell.marginColour=CellColours.selectedMargin;
+    return Container(
+      color: cell.marginColour,
+      child: InkWell(
+        onTap: () => select(cell),
+        child: Container(
+          alignment: alignment,
+          color: () {
+            if (boardModePlay)
+            {
+              return cell.colour;
+            }
+            return CellColours.setMode;
+          }(),
+          margin: EdgeInsets.only(
+            left: cell.leftMargin,
+            right: cell.rightMargin,
+            top: cell.topMargin,
+            bottom: cell.bottomMargin,
+          ),
+          child: child,
+        )
+      ),
     );
   }
 
-  ElevatedButton inputButton(int number, ButtonMode mode)
+  List<Widget> _getInputModeButtons()
+  {
+    List<Widget> inputModeButtons = [];
+    inputModeButtons.add(ElevatedButton( //number input mode button
+      onPressed: ()
+      {
+        boardModePlay?setMode(ButtonMode.number):setMode(ButtonMode.fixedNum);
+      },
+      child: Text('Numbers')
+    ));
+    if(boardModePlay)
+    {
+      inputModeButtons.add(ElevatedButton( // center pencil marks input mode button
+        onPressed: () => setMode(ButtonMode.pencilCenter), 
+        child: Text('Center')
+      ));
+      inputModeButtons.add(ElevatedButton( //corner pencil marks input mode button
+        onPressed: () => setMode(ButtonMode.pencilCorner), 
+        child: Image.asset('assets/PencilCorner.png'),
+      ));
+      inputModeButtons.add(ElevatedButton( // colour input mode button
+        onPressed: () => setMode(ButtonMode.colour), 
+        child: Text('Colour')
+      ));
+    }else{
+      inputModeButtons.add(ElevatedButton( // boxID input mode button
+        onPressed: () => setMode(ButtonMode.jigsaw), 
+        child: Text('Set Jigsaw')
+      ));
+    }
+    return inputModeButtons;
+  }
+
+  Widget _jigsawModeInputZone()
+  {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Colors.orange,
+        borderRadius: BorderRadius.all(Radius.circular(20)), 
+      ),
+      child: GridView.builder(
+        padding: EdgeInsets.all(5),
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 2,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 10
+        ),
+
+        itemBuilder: (context, sector)
+        {
+          if(sector==0)
+          {
+            return Container(
+              alignment: Alignment.center,
+                child:
+            ListView.builder(
+              padding: EdgeInsets.all(10),
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 9,
+              itemBuilder: (context, number) 
+              {
+                int boxContains = Sudoku.getNumberOfCellsInBox(number, board);
+                return Container(
+                  alignment: Alignment.center,
+                  color: boxContains==9? const Color.fromARGB(255, 187, 255, 189):const Color.fromARGB(255, 255, 173, 167),
+                  child: Text('box ${String.fromCharCode(number+65)} contains $boxContains cells'),
+                );
+              }
+            ),
+              
+            );
+          }
+         return DecoratedBox(
+            decoration: const BoxDecoration(
+              color: Colors.yellow,
+              borderRadius: BorderRadius.all(Radius.circular(20)), 
+            ),
+            child: Column(
+              children: [
+                Container
+                (
+                  alignment: Alignment.topCenter,
+                  child: Text('Configure Box Shapes'),
+                ),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.only(
+                    right: 15,
+                    left: 15,
+                  ),
+                  itemCount: 9,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 5,
+                    mainAxisSpacing: 5,
+                  ), 
+                  itemBuilder: (context, boxId)
+                  {
+                    return ElevatedButton(
+                      onPressed: ()
+                      {
+                        _setBoxId(boxId);
+                      }, 
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        backgroundColor: const Color.fromARGB(255, 255, 248, 183),
+                      ),
+                      child:Container(
+                        alignment: Alignment.center,
+                        child: Text(String.fromCharCode(boxId+65)),
+                      ),
+                      
+                    );
+                  }
+                ),
+              ],
+            ),
+          );
+        }
+      ),
+    );
+  }
+
+  Widget _boardInputZone()
+  {
+    Widget zone;
+    switch(mode)
+    {
+      case ButtonMode.jigsaw:
+        zone = _jigsawModeInputZone();
+      default:
+        zone = GridView.builder(
+          shrinkWrap: true,
+          itemCount:10,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5),
+          itemBuilder:(context, number)
+          {
+            return _zeroToNineButton(number);
+          }
+        );
+    }
+    return zone;
+  }
+
+  ElevatedButton _zeroToNineButton(int number)
   {
     String textVal = "$number";
 
@@ -522,22 +700,8 @@ class _BoardState extends State<Board>
           }
         };
         child = Text(textVal, style: textStyle); //TODO - make pretty, text icons should appear at correct corner of buttons
-        // GridView.builder(
-        //   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3), 
-        //   physics: const NeverScrollableScrollPhysics(),
-        //   itemCount: 3,
-        //   itemBuilder: (buildContext, index) {
-        //     if (number==0)
-        //     {
-        //       return Text("Clear", style: TextStyle(backgroundColor: Colors.red,),);
-        //     }
-        //     if (index == number-1)
-        //     {
-        //       return Text("$number");
-        //     }
-        //     return Text("o");
-        //   },
-        // );   
+      default:
+        throw 'unimplemented case for boardMode value'; 
     }
  
 
@@ -558,6 +722,7 @@ class _BoardState extends State<Board>
       }
     });
   }
+  
   void resetPlay()
   {
     setState(() 
@@ -591,6 +756,17 @@ class _BoardState extends State<Board>
           cell.updateColour(0);
         }    
     });
+  }
+
+  void _doSave() async
+  {
+    DateTime now = DateTime.now();
+    int difference = now.difference(lastSave).inSeconds;
+    if(difference >= 5)
+    {
+      lastSave = now;
+      boardID = await SaveLoad.saveBoard(boardID, meAsString());
+    }
   }
 
   @override
@@ -635,7 +811,7 @@ class _BoardState extends State<Board>
         board.add(newCell);
       }
     }
-    handleMargins(0, true);
+    handleMargins(board);
   }
 
   @override
@@ -664,13 +840,13 @@ class _BoardState extends State<Board>
               Icon(Icons.edit_note)
               ]),
           ),
-          onSubmitted: (String value) async
+          onSubmitted: (String value)
           {
             setState(()
             {
               name = value;
             });
-            boardID = await SaveLoad.saveBoard(boardID, meAsString());
+            _doSave();
           },
         ),
       ),
@@ -838,73 +1014,12 @@ class _BoardState extends State<Board>
               itemBuilder: (buildContext, index)
               {
                 Cell cell = board[index];
-                return Container(
-                  color: cell.marginColour,
-                  child: cellDisplay(cell),
-                );
+                return cellDisplay(cell);
               },
             ),
-            
           ),
-          Column(
-            children: [
-              Row(
-                children: [
-                  ElevatedButton(
-                    onPressed: (){
-                      if(boardModePlay)
-                      {
-                        return () => setMode(ButtonMode.number);
-                      }
-                      return () => setMode(ButtonMode.fixedNum);
-                      }(), 
-                    child: Text('Numbers')
-                  ),
-                  (){
-                    if (boardModePlay)
-                    {
-                      return ElevatedButton(
-                        onPressed: () => setMode(ButtonMode.pencilCorner), 
-                        child: Image.asset('assets/PencilCorner.png'),
-                      );
-                    }
-                    return Container();
-                  }(),
-                  (){
-                    if (boardModePlay)
-                    {
-                      return ElevatedButton(
-                        onPressed: () => setMode(ButtonMode.pencilCenter), 
-                        child: Text('Center')
-                      );
-                    }
-                    return Container();
-                  }(),
-                  (){
-                    if (boardModePlay)
-                    {
-                      return ElevatedButton(
-                        onPressed: () => setMode(ButtonMode.colour), 
-                        child: Text('Colour')
-                      );
-                  }
-                    return Container();
-                  }(),
-                ],
-              ),
-              GridView.builder(
-                shrinkWrap: true,
-                itemCount:10,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 5
-                ),
-                itemBuilder:(context, number){
-                  return inputButton(number, mode);
-                }
-              ),
-            ],
-          ),
+          Row(children: _getInputModeButtons(),),
+          _boardInputZone(),
         ],
       ),
     );

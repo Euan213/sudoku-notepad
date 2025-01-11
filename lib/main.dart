@@ -151,7 +151,7 @@ class _SavesPageState extends State<SavesPage>
               }
               else
               {
-                if (data==0)
+                if (snapshot.data=='')
                 {
                   return Text('Looks like you have no saves!');
                 }
@@ -164,10 +164,10 @@ class _SavesPageState extends State<SavesPage>
                     crossAxisCount: 2,
                     childAspectRatio: 2.5,
                   ),
-                  itemCount: data?.length,
+                  itemCount: data!.length-1,
                   itemBuilder: (context, index) 
                   {
-                    List<String> boardData = '${data?[index]}'.split('|');
+                    List<String> boardData = data[index].split('|');
                     return DecoratedBox(
                       decoration: BoxDecoration(
                         color: Colors.blue,

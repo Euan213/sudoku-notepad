@@ -24,6 +24,16 @@ class Sudoku
     return (_sameRow(cell_1, cell_2) || _sameColumn(cell_1, cell_2) || sameBox(cell_1, cell_2));
   }
 
+  static int getNumberOfCellsInBox(int boxId, List<Cell> board)
+  {
+    int count = 0;
+    for(Cell cell in board)
+    {
+      boxId==cell.boxId? count++ : {};
+    }
+    return count;
+  }
+
   static List<int> getNeighbors(Cell cell)
   {
     int i = cell.index;
@@ -80,8 +90,6 @@ class Sudoku
     }
     return list;
   }
-
-
 
   static bool checkSolved(List<Cell> board)
   {
@@ -190,7 +198,6 @@ class Sudoku
       if(hint.cellIds.isEmpty&&hint.sector==HintType.row)hint.cellIds=_getRowMembers(hint.sectorId);
       if(hint.cellIds.isEmpty&&hint.sector==HintType.column)hint.cellIds=_getColumnMembers(hint.sectorId);
     }
-
     return hints;
   } 
 }
