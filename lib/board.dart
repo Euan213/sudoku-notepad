@@ -111,7 +111,7 @@ class _BoardState extends State<Board>
       cells+='${cell.isFixed?1:0}.${cell.num}.$centerStr.$cornerStr.${cell.getColourId()}.${cell.boxId},';
     }
     cells = cells.substring(0, cells.length-1);
-    return "${constraints.join()}|${boardModePlay?1:0}|$cells|$name";
+    return "${constraints.join('¦')}|${boardModePlay?1:0}|$cells|$name";
   }
 
   void setMode(ButtonMode m)
@@ -208,7 +208,6 @@ class _BoardState extends State<Board>
         }
       }
     });
-    _doSave();
   }
 
   void setPencilCorner(int n, Cell cell)
@@ -226,7 +225,6 @@ class _BoardState extends State<Board>
         cell.pencilCorner[n-1] = !cell.pencilCorner[n-1];
       }  
     });
-    _doSave();
   }
   
   void setPencilCenter(int n, Cell cell)
@@ -244,7 +242,6 @@ class _BoardState extends State<Board>
         cell.pencilCenter[n-1] = !cell.pencilCenter[n-1];
       }
     });
-    _doSave();
   }
   
   void setColour(int n, Cell cell)
@@ -252,7 +249,6 @@ class _BoardState extends State<Board>
     setState(() {
       cell.updateColour(n);
     });
-    _doSave();
   }
 
   void _setBoxId(int boxId)
@@ -268,7 +264,6 @@ class _BoardState extends State<Board>
         }
       }
     });
-    _doSave();
   } 
 
   void _doUndo()
@@ -316,7 +311,6 @@ class _BoardState extends State<Board>
       handleSeen(board[0]);
 
     });
-    _doSave();
   }
 
   void boardSetMode()
@@ -331,7 +325,6 @@ class _BoardState extends State<Board>
         cell.reset();
       }
     });
-    _doSave();
   }
 
   void select(Cell thisCell) 
@@ -374,7 +367,12 @@ class _BoardState extends State<Board>
     }
   }
 
-  Container cellDisplay(Cell cell)
+  List<Widget> _varientOverlay(Cell cell)
+  {
+    return[];
+  }
+
+  Widget cellDisplay(Cell cell)
   {
     Widget child;
     Alignment alignment;
@@ -451,28 +449,33 @@ class _BoardState extends State<Board>
       }      
     }
     if(cell.selected)cell.marginColour=CellColours.selectedMargin;
-    return Container(
-      color: cell.marginColour,
-      child: InkWell(
-        onTap: () => select(cell),
-        child: Container(
-          alignment: alignment,
-          color: () {
-            if (boardModePlay)
-            {
-              return cell.colour;
-            }
-            return CellColours.setMode;
-          }(),
-          margin: EdgeInsets.only(
-            left: cell.leftMargin,
-            right: cell.rightMargin,
-            top: cell.topMargin,
-            bottom: cell.bottomMargin,
+    return Stack(
+      children: [
+        Container(
+          color: cell.marginColour,
+          child: InkWell(
+            onTap: () => select(cell),
+            child: Container(
+              alignment: alignment,
+              color: () {
+                if (boardModePlay)
+                {
+                  return cell.colour;
+                }
+                return CellColours.setMode;
+              }(),
+              margin: EdgeInsets.only(
+                left: cell.leftMargin,
+                right: cell.rightMargin,
+                top: cell.topMargin,
+                bottom: cell.bottomMargin,
+              ),
+              child: child,
+            )
           ),
-          child: child,
-        )
-      ),
+        ),
+        ..._varientOverlay(cell),
+      ],
     );
   }
 
@@ -525,28 +528,26 @@ class _BoardState extends State<Board>
           crossAxisCount: 2,
           crossAxisSpacing: 10
         ),
-
         itemBuilder: (context, sector)
         {
           if(sector==0)
           {
             return Container(
               alignment: Alignment.center,
-                child:
-            ListView.builder(
-              padding: EdgeInsets.all(10),
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 9,
-              itemBuilder: (context, number) 
-              {
-                int boxContains = Sudoku.getNumberOfCellsInBox(number, board);
-                return Container(
-                  alignment: Alignment.center,
-                  color: boxContains==9? const Color.fromARGB(255, 187, 255, 189):const Color.fromARGB(255, 255, 173, 167),
-                  child: Text('box ${String.fromCharCode(number+65)} contains $boxContains cells'),
-                );
-              }
-            ),
+              child: ListView.builder(
+                padding: EdgeInsets.all(10),
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 9,
+                itemBuilder: (context, number) 
+                {
+                  int boxContains = Sudoku.getNumberOfCellsInBox(number, board);
+                  return Container(
+                    alignment: Alignment.center,
+                    color: boxContains==9? const Color.fromARGB(255, 187, 255, 189):const Color.fromARGB(255, 255, 173, 167),
+                    child: Text('box ${String.fromCharCode(number+65)} contains $boxContains cells'),
+                  );
+                }
+              ),
               
             );
           }
@@ -817,6 +818,7 @@ class _BoardState extends State<Board>
   @override
   Widget build(BuildContext context)
   {
+    _doSave();
     return Scaffold(
       resizeToAvoidBottomInset : false,
       appBar: AppBar(
@@ -846,7 +848,6 @@ class _BoardState extends State<Board>
             {
               name = value;
             });
-            _doSave();
           },
         ),
       ),
