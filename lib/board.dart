@@ -856,7 +856,6 @@ class _BoardState extends State<Board>
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              spacing: 10,
               children: [
                 ElevatedButton( // set mode button | play mode button
                   onPressed: () => boardModePlay? boardSetMode():boardPlayMode(),
