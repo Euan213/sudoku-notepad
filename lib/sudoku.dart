@@ -209,7 +209,6 @@ class Sudoku
     for(int i=0; i<81; i++)
     {
       if(board[i].isFixed)continue;
-
       if(backtracked)
       {
         board[i].num = 0;
@@ -231,6 +230,7 @@ class Sudoku
       }
       if(valid)continue;
       backtracked = true;
+      if(indexStack.isEmpty)return(SolveOutcome.noSolution, []);
       i = indexStack.removeLast()-1;
     }
     return (SolveOutcome.success, board);
