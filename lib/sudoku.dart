@@ -1,6 +1,7 @@
 import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/hint.dart';
 import 'package:sudoku_notepad/hintType.dart';
+import 'package:sudoku_notepad/solveOutcome.dart';
 
 class Sudoku
 {
@@ -199,5 +200,49 @@ class Sudoku
       if(hint.cellIds.isEmpty&&hint.sector==HintType.column)hint.cellIds=_getColumnMembers(hint.sectorId);
     }
     return hints;
-  } 
+  }
+  (SolveOutcome, List<Cell>) _basicSolve(List<Cell> board)
+  {
+    List<int> indexStack = [];
+    bool backtracked = false;
+    bool valid = true;
+    for(int i=0; i<81; i++)
+    {
+      if(board[i].isFixed)continue;
+      if(backtracked)
+      {
+        board[i].num = 0;
+        backtracked = false;
+      }
+      while(board[i].num<10)
+      {
+        valid = true;
+        board[i].num++;
+        for(Cell cell in board)
+        {
+          if (isSeen(board[i], cell) && board[i].num==cell.num && board[i].index!=cell.index)
+          {
+            valid = false;
+            break;
+          }
+        }
+        if(valid)break;
+      }
+      if(valid)continue;
+      backtracked = true;
+      if(indexStack.isEmpty)return(SolveOutcome.noSolution, []);
+      i = indexStack.removeLast()-1;
+    }
+    return (SolveOutcome.success, board);
+  }
+
+  (SolveOutcome, List<Cell>) solve(List<Cell> board, List<dynamic> constraints)
+  {
+    (SolveOutcome, List<Cell>) outcome, potential = _basicSolve(board);
+    if(constraints.isEmpty)
+    {
+      return _basicSolve(board);
+    }
+    return _basicSolve(board);
+  }
 }

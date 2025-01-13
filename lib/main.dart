@@ -192,7 +192,6 @@ class _SavesPageState extends State<SavesPage>
                                 alignment: Alignment.bottomCenter,
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  spacing: 20,
                                   children: [
                                     IconButton(
                                       onPressed: () => Navigator.of(context).push(MaterialPageRoute(
