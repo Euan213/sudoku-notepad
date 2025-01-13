@@ -1,0 +1,1 @@
+enum Variant {killer,}

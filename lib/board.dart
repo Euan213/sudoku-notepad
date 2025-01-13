@@ -8,6 +8,7 @@ import 'package:sudoku_notepad/saveLoad.dart';
 import 'package:sudoku_notepad/sudoku.dart';
 import 'package:sudoku_notepad/cellColours.dart';
 import 'package:sudoku_notepad/hint.dart';
+import 'package:sudoku_notepad/variant.dart';
 
 
 class Board extends StatefulWidget{
@@ -33,7 +34,7 @@ class _BoardState extends State<Board>
 
   List<Cell> board = [];
   late bool boardModePlay;
-  late List<String> constraints;
+  List<dynamic> constraints = [];
 
   //list of constraints
 
@@ -89,7 +90,8 @@ class _BoardState extends State<Board>
 
   String meAsString()
   {
-    String cells = '';
+    List<String> cells = [];
+    List<String> constraintsStr = [];
     for (Cell cell in board)
     {
       String centerStr='';
@@ -108,10 +110,25 @@ class _BoardState extends State<Board>
           cornerStr+='${index+1}';
         }
       }
-      cells+='${cell.isFixed?1:0}.${cell.num}.$centerStr.$cornerStr.${cell.getColourId()}.${cell.boxId},';
+      cells.add('${cell.isFixed?1:0}.${cell.num}.$centerStr.$cornerStr.${cell.getColourId()}.${cell.boxId}');
     }
-    cells = cells.substring(0, cells.length-1);
-    return "${constraints.join('¦')}|${boardModePlay?1:0}|$cells|$name";
+    if(constraints[0]!='')
+    {
+      print(''.split('¦').length);
+      print(constraints.length);
+      for(var constraint in constraints)
+      {
+        print(constraint);
+        switch(constraint[0]) //the way a constraint is converted to a string is different for each variant type
+        {
+          case Variant.killer:
+            constraintsStr.add('${constraint[0].name}${constraint[1].join('.')}${constraint[2]}');
+          default:
+            continue;
+        }
+      }
+    }
+    return "${constraintsStr.join('¦')}|${boardModePlay?1:0}|${cells.join(',')}|$name";
   }
 
   void setMode(ButtonMode m)
@@ -367,9 +384,11 @@ class _BoardState extends State<Board>
     }
   }
 
-  List<Widget> _varientOverlay(Cell cell)
+  Widget _varientOverlay(Cell cell)
   {
-    return[];
+    Widget Vdisplay = Container();
+    
+    return Vdisplay;
   }
 
   Widget cellDisplay(Cell cell)
@@ -474,7 +493,7 @@ class _BoardState extends State<Board>
             )
           ),
         ),
-        ..._varientOverlay(cell),
+        _varientOverlay(cell),
       ],
     );
   }
@@ -789,13 +808,17 @@ class _BoardState extends State<Board>
     }
     else
     {
+      List<String> cellData;
+      Cell newCell;
+      List<String> centerVals;
+      List<String> cornerVals;
       int i = 0;
       for (String cellString in boardCells)
       {
-        List<String> cellData = cellString.split('.');
-        Cell newCell = Cell(int.parse(cellData[5]) ,i);
-        List<String> centerVals = cellData[2].split('');
-        List<String> cornerVals = cellData[3].split('');
+        cellData = cellString.split('.');
+        newCell = Cell(int.parse(cellData[5]) ,i);
+        centerVals = cellData[2].split('');
+        cornerVals = cellData[3].split('');
         newCell.isFixed = cellData[0]=='0'? false:true;
         newCell.num = int.parse(cellData[1]);
         for (String num in centerVals)
@@ -813,6 +836,34 @@ class _BoardState extends State<Board>
       }
     }
     handleMargins(board);
+    if(widget.constraints.isNotEmpty)
+    {
+      Variant v;
+      List<int> cells;
+      List<String> groupingData;
+      for(String grouping in widget.constraints)
+      {
+        cells = [];
+        groupingData = grouping.split(',');
+        try //load variants constraints from save
+        {
+          v = Variant.values.byName(groupingData[0]);
+          for(String index in groupingData[1].split('.'))
+          {
+            cells.add(int.parse(index));
+          }
+          switch(v) //since additional data types/amounts can vary on the variant it much be dealt with in the context of the variant it applies to.
+          {
+            case Variant.killer:
+              int sum = int.parse(groupingData[2]);
+              constraints.add([v, cells, sum]);
+          }
+        }catch (e) //skip entries that cant be read, prevents a crash on bad data
+        { 
+          continue;
+        }
+      }
+    }
   }
 
   @override
