@@ -146,7 +146,7 @@ class _BoardState extends State<Board>
   {
     setState(()
     {
-      switch(buttonMode)
+      switch(buttonMode) //leaving mode
       {
         case ButtonMode.setKiller:
         {
@@ -155,6 +155,14 @@ class _BoardState extends State<Board>
             editingCageId = null;
             newCageSum = null;
           }
+        }
+        default:{}
+      }
+      switch(m) //entering mode
+      {
+        case ButtonMode.setKiller:
+        {
+          clearSelected();
         }
         default:{}
       }
@@ -445,7 +453,7 @@ class _BoardState extends State<Board>
           {
             if(constraints[editingCageId!]==constraint)
             {
-              dashColour = const Color.fromARGB(255, 155, 65, 13);
+              dashColour = const Color.fromARGB(255, 255, 255, 255);
             }
           }
           if(constraint.appliesToIndexes.contains(index))
@@ -758,8 +766,6 @@ class _BoardState extends State<Board>
     var cages = [...constraints.where((c) => c.type==Variant.killer)];
     constraints.removeWhere((c) => c.type==Variant.killer);
     constraints.insertAll(0, cages); 
-    String text;
-    Color colour;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.greenAccent,
@@ -792,6 +798,17 @@ class _BoardState extends State<Board>
                       }, 
                       child: Text('Edit')
                     ),
+                    Spacer(),
+                    IconButton(
+                      onPressed: ()
+                      {
+                        setState(() {
+                          constraints.removeAt(index);
+                          editingCageId=null;
+                        });
+                      }, 
+                      icon: const Icon(Icons.delete, color: Colors.red,)
+                    )
                   ],
                 );
               },
@@ -819,7 +836,6 @@ class _BoardState extends State<Board>
                       }else
                       {
                         editingCageId = null;
-                        newCageSum = null;
                       }                      
                     });
                   },
