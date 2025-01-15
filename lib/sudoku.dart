@@ -22,7 +22,7 @@ class Sudoku
 
   static bool isSeen(Cell cell_1, Cell cell_2)
   {
-    return (_sameRow(cell_1, cell_2) || _sameColumn(cell_1, cell_2) || sameBox(cell_1, cell_2));
+    return ((_sameRow(cell_1, cell_2) || _sameColumn(cell_1, cell_2) || sameBox(cell_1, cell_2)) && cell_1.index != cell_2.index);
   }
 
   static int getNumberOfCellsInBox(int boxId, List<Cell> board)
@@ -37,8 +37,12 @@ class Sudoku
 
   static List<int> getNeighbors(Cell cell)
   {
+    // returns an integer list of neighbors for a given cell, in the form:
+    // [right, left, above, below].
+    // where a neighbor does not exist, i.e, a cell is on the edge of the board a default 
+    // value of -1 is inputed in its place in the resulting list.
     int i = cell.index;
-    List<int> potentialNeighbors = [i+1, i-1, i-9, i+9];
+    List<int> potentialNeighbors = [i+1, i-1, i-9, i+9]; 
     List<int> neighbors = [];
     for (int n in potentialNeighbors)
     {
@@ -74,7 +78,7 @@ class Sudoku
     }while (index%9!=0&&index!=id*9);
     return list;
   }
-    static List<int> _getColumnMembers(int? id)
+  static List<int> _getColumnMembers(int? id)
   {
     int? index = id;
     List<int> list=[];
@@ -161,7 +165,7 @@ class Sudoku
     {
       for (Cell compareCell in board)
       {
-        if (isSeen(cell, compareCell) && cell.num==compareCell.num && cell.num!=0 && cell.index!=compareCell.index)
+        if (isSeen(cell, compareCell) && cell.num==compareCell.num && cell.num!=0)
         {
           return [Hint(HintType.mistake, [cell.index, compareCell.index,], null)];
         }
@@ -201,47 +205,75 @@ class Sudoku
     }
     return hints;
   }
-  (SolveOutcome, List<Cell>) _basicSolve(List<Cell> board)
+
+  static bool _isInputValid(Cell cell, List<Cell> board)
   {
+    bool valid = true;
+    for(Cell comparer in board)
+    {
+      if (isSeen(cell, comparer) && cell.num==comparer.num)
+      {
+        valid = false;
+        break;
+      }
+    }
+    return valid;
+  }
+
+  static (SolveOutcome, List<Cell>) _basicSolve(List<Cell> board)
+  {
+    int delme = 0;
+    int max = 0;
     List<int> indexStack = [];
     bool backtracked = false;
-    bool valid = true;
-    for(int i=0; i<81; i++)
-    {
-      if(board[i].isFixed)continue;
-      if(backtracked)
+    for(int i=0; i<81;)
+    {  
+      if(delme%1000000==0)
+      {
+        print(delme);
+        print('searching');
+        print('currently at index $i max index is $max');
+      }
+      if(i>max)max=i;
+      delme++;
+      if(board[i].isFixed)
+      {
+        i++;
+        continue;
+      }
+      if(!backtracked)
       {
         board[i].num = 0;
-        backtracked = false;
       }
-      while(board[i].num<10)
+      backtracked = false;
+      
+      board[i].num++;
+      while(!_isInputValid(board[i], board))
       {
-        valid = true;
         board[i].num++;
-        for(Cell cell in board)
-        {
-          if (isSeen(board[i], cell) && board[i].num==cell.num && board[i].index!=cell.index)
-          {
-            valid = false;
-            break;
-          }
-        }
-        if(valid)break;
       }
-      if(valid)continue;
-      backtracked = true;
-      if(indexStack.isEmpty)return(SolveOutcome.noSolution, []);
-      i = indexStack.removeLast()-1;
+      if(board[i].num>9)
+      {
+        board[i].num=0;
+        backtracked = true;
+        if(indexStack.isEmpty)return(SolveOutcome.noSolution, []);
+        i = indexStack.removeLast();
+        continue;
+      }
+      if(!backtracked)indexStack.add(i);
+      i++;            
     }
     return (SolveOutcome.success, board);
   }
 
-  (SolveOutcome, List<Cell>) solve(List<Cell> board, List<dynamic> constraints)
+  static (SolveOutcome, List<Cell>) solve(List<Cell> board, List<dynamic> constraints)
   {
-    (SolveOutcome, List<Cell>) outcome, potential = _basicSolve(board);
+    (SolveOutcome, List<Cell>) outcome = _basicSolve(board);
     if(constraints.isEmpty)
     {
-      return _basicSolve(board);
+      print(outcome);
+      return outcome;
+      
     }
     return _basicSolve(board);
   }

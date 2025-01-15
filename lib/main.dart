@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sudoku_notepad/board.dart';
 import 'package:sudoku_notepad/saveLoad.dart';
-import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -168,6 +167,22 @@ class _SavesPageState extends State<SavesPage>
                   itemBuilder: (context, index) 
                   {
                     List<String> boardData = data[index].split('|');
+                    if (boardData.length!=4)
+                    {
+                      return ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.black,
+                          textStyle: TextStyle(fontWeight: FontWeight.bold,),
+                        ),
+                        onPressed: () => {
+                          SaveLoad.deleteBoard(index).then((_) 
+                          {
+                            setState(() {});
+                          }), 
+                        },
+                        child: Text('Delete corrupted save'));
+                    }
                     return DecoratedBox(
                       decoration: BoxDecoration(
                         color: Colors.blue,
@@ -195,7 +210,7 @@ class _SavesPageState extends State<SavesPage>
                                   children: [
                                     IconButton(
                                       onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                                        builder: (context) => Board(index, boardData[0].split('¦'), boardData[1]=='0'?false:true, boardData[2], boardData[3])
+                                        builder: (context) => Board(index, boardData[0]==''?[]:boardData[0].split('¦'), boardData[1]=='0'?false:true, boardData[2], boardData[3])
                                       )),
                                       icon: Icon(Icons.play_arrow, color: const Color.fromARGB(255, 0, 158, 5), size: 50,)
                                     ),

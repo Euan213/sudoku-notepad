@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/buttonMode.dart';
+import 'package:sudoku_notepad/constraint.dart';
+import 'package:sudoku_notepad/killerConstraint.dart';
 import 'package:sudoku_notepad/main.dart';
 import 'package:sudoku_notepad/move.dart';
 import 'package:sudoku_notepad/saveLoad.dart';
@@ -9,6 +11,7 @@ import 'package:sudoku_notepad/sudoku.dart';
 import 'package:sudoku_notepad/cellColours.dart';
 import 'package:sudoku_notepad/hint.dart';
 import 'package:sudoku_notepad/variant.dart';
+import 'package:dotted_line/dotted_line.dart';
 
 
 class Board extends StatefulWidget{
@@ -29,14 +32,20 @@ class _BoardState extends State<Board>
   late int boardID;
   var undoHistory = [];
   List<Cell> selected = [];
-  ButtonMode mode = ButtonMode.fixedNum;
+  ButtonMode buttonMode = ButtonMode.fixedNum;
+  ButtonMode selectMode = ButtonMode.number;
   DateTime lastSave = DateTime.now();
 
   List<Cell> board = [];
   late bool boardModePlay;
+
+  //list of constraints & related data
   List<dynamic> constraints = [];
 
-  //list of constraints
+  //killer
+  List<DropdownMenuEntry> killerSumSelection=[];
+  int? editingCageId;
+  int? newCageSum;
 
   void _populateBoard()
   {
@@ -112,17 +121,14 @@ class _BoardState extends State<Board>
       }
       cells.add('${cell.isFixed?1:0}.${cell.num}.$centerStr.$cornerStr.${cell.getColourId()}.${cell.boxId}');
     }
-    if(constraints[0]!='')
+    if(constraints.isNotEmpty)
     {
-      print(''.split('¦').length);
-      print(constraints.length);
       for(var constraint in constraints)
       {
-        print(constraint);
-        switch(constraint[0]) //the way a constraint is converted to a string is different for each variant type
+        switch(constraint.type) //the way a constraint is converted to a string is different for each variant type
         {
           case Variant.killer:
-            constraintsStr.add('${constraint[0].name}${constraint[1].join('.')}${constraint[2]}');
+            constraintsStr.add('killer,${constraint.appliesToIndexes.join('.')},${constraint.sum}');
           default:
             continue;
         }
@@ -131,11 +137,28 @@ class _BoardState extends State<Board>
     return "${constraintsStr.join('¦')}|${boardModePlay?1:0}|${cells.join(',')}|$name";
   }
 
-  void setMode(ButtonMode m)
+  void setSelectMode(ButtonMode m)
+  {
+    selectMode = m;
+  }
+
+  void setButtonMode(ButtonMode m)
   {
     setState(()
     {
-      mode = m;
+      switch(buttonMode)
+      {
+        case ButtonMode.setKiller:
+        {
+          if(buttonMode!=m)
+          {
+            editingCageId = null;
+            newCageSum = null;
+          }
+        }
+        default:{}
+      }
+      buttonMode = m;
     });
   }
 
@@ -169,7 +192,7 @@ class _BoardState extends State<Board>
   {
     for (Cell cell in board)
     {
-      cell.doSameNum(cell.num==newNum);
+      cell.doSameNum(cell.num==newNum && cell.num==0);
     }
   }
 
@@ -322,7 +345,7 @@ class _BoardState extends State<Board>
   {
     setState(() {
       boardModePlay = true;
-      mode = ButtonMode.number;
+      buttonMode = ButtonMode.number;
       
       clearSelected();
       handleSeen(board[0]);
@@ -334,7 +357,7 @@ class _BoardState extends State<Board>
   {
     setState(() {
       boardModePlay = false;
-      mode = ButtonMode.fixedNum;
+      buttonMode = ButtonMode.fixedNum;
       clearSelected();
       handleSameNum(0);
       for (Cell cell in board)
@@ -342,6 +365,29 @@ class _BoardState extends State<Board>
         cell.reset();
       }
     });
+  }
+
+  void killerSelect(Cell thisCell)
+  {
+    setState(() {
+      if(editingCageId!=null)
+      {
+        for(Constraint c in constraints)
+        {
+          if(c.type==Variant.killer && c.appliesToIndexes.contains(thisCell.index))
+          {
+            c.appliesToIndexes.remove(thisCell.index);
+            if(c!=constraints[editingCageId!])
+            {
+              constraints[editingCageId!].appliesToIndexes.add(thisCell.index);
+            }
+            return;
+          }
+        }
+        constraints[editingCageId!].appliesToIndexes.add(thisCell.index);
+      }      
+    });
+
   }
 
   void select(Cell thisCell) 
@@ -353,16 +399,17 @@ class _BoardState extends State<Board>
         clearSelected();
         handleSameNum(0);
         handleSeen(thisCell);
+        thisCell.marginColour = CellColours.notSelectedMargin;
       }else
       {
         clearSelected();
         thisCell.doSelect();
         selected.add(thisCell);
-
+        thisCell.marginColour = CellColours.selectedMargin;
         handleSeen(thisCell); 
         if (boardModePlay)
         {
-        handleSameNum(thisCell.num);
+          handleSameNum(thisCell.num);
         }
       }
     });
@@ -386,115 +433,201 @@ class _BoardState extends State<Board>
 
   Widget _varientOverlay(Cell cell)
   {
-    Widget Vdisplay = Container();
-    
-    return Vdisplay;
+    Widget vDisplay = Container();
+    int index = cell.index;
+    for(dynamic constraint in constraints)
+    {
+      switch(constraint.type)
+      {
+        case Variant.killer:
+          Color dashColour = const Color.fromARGB(255, 65, 65, 65);;
+          if(editingCageId!=null)
+          {
+            if(constraints[editingCageId!]==constraint)
+            {
+              dashColour = const Color.fromARGB(255, 155, 65, 13);
+            }
+          }
+          if(constraint.appliesToIndexes.contains(index))
+          {
+            List <Widget> children = [];
+            List<int> neighbors = Sudoku.getNeighbors(cell);
+            int min = index;
+            
+            for(int index in constraint.appliesToIndexes)
+            {
+              if(index<min)min=index;
+            }
+            EdgeInsets standardCagePadding = EdgeInsets.all(4); 
+            EdgeInsets cageLeft = standardCagePadding;
+            EdgeInsets cageTop = standardCagePadding; 
+            if(min==index && constraint.sum!=0)
+            {
+              cageLeft = EdgeInsets.only(top: 17, left: 4, bottom: 4, right: 4,);
+              cageTop = EdgeInsets.only(top: 4, left: 10, bottom: 4, right: 4,);
+              children.add(Container(
+                alignment: Alignment.topLeft,
+                child: Text('${constraint.sum}',
+                  style: TextStyle(color: const Color.fromARGB(255, 65, 65, 65),),
+                ),
+              ));
+            }
+            for(final (nIndex, n) in neighbors.indexed)
+            {
+              if(!constraint.appliesToIndexes.contains(n))
+              {
+                children.add(Container(
+                padding: nIndex==1? cageLeft:
+                         nIndex==2? cageTop:
+                         standardCagePadding,
+                alignment: nIndex==0? Alignment.centerRight:
+                           nIndex==1? Alignment.centerLeft:
+                           nIndex==2? Alignment.topCenter:
+                           Alignment.bottomCenter,
+                child: DottedLine(
+                  dashColor: dashColour, 
+                  direction: nIndex==0||nIndex==1? Axis.vertical:Axis.horizontal, 
+                )
+              ));
+              }
+            }
+            vDisplay = Stack(children: children,);
+          }
+      }
+    }
+    return vDisplay;
   }
 
   Widget cellDisplay(Cell cell)
   {
     Widget child;
     Alignment alignment;
-    if(mode == ButtonMode.jigsaw)
+    dynamic selectInput = cell;
+    var selectBehaviour = (selectInput) => select(selectInput);
+
+    switch(buttonMode)
     {
-      cell.marginColour = CellColours.baseColours[cell.boxId];
-      alignment = Alignment.center;
-      child = FittedBox(
-        fit: BoxFit.contain,
-        child: Text(
-          String.fromCharCode(cell.boxId+65),
-          style: TextStyle(fontSize: 40, color: CellColours.baseColours[cell.boxId])
-        ), 
-      );
-    }else
-    {
-      cell.marginColour = CellColours.notSelectedMargin;
-      if (cell.num != 0)
+      case ButtonMode.setJigsaw:
       {
+        cell.marginColour = CellColours.baseColours[cell.boxId];
         alignment = Alignment.center;
         child = FittedBox(
           fit: BoxFit.contain,
           child: Text(
-            '${cell.num}',
-            style: TextStyle(fontSize: 40, color: cell.textColour)
+            String.fromCharCode(cell.boxId+65),
+            style: TextStyle(fontSize: 40, color: CellColours.baseColours[cell.boxId])
           ), 
         );
       }
-      else if(cell.pencilCenter.contains(true))
+      case ButtonMode.setKiller:
       {
+        selectInput = cell;
+        selectBehaviour = (selectInput) => killerSelect(cell);
         alignment = Alignment.center;
-        String txtStr = '';
-        for (int i = 0; i <= 8; i++)
+        if (cell.num != 0 && cell.isFixed)
         {
-          if (cell.pencilCenter[i])
-          {
-            txtStr += '${i+1}';
-          }
+          
+          child = FittedBox(
+            fit: BoxFit.contain,
+            child: Text(
+              '${cell.num}',
+              style: TextStyle(fontSize: 40, color: cell.textColour)
+            ), 
+          );
+        }else
+        {
+          child = Text('');
         }
-        child = FittedBox(
-          fit: BoxFit.fitWidth,
-          child: Text(txtStr,),
-        );
       }
-      else if (cell.pencilCorner.contains(true))
+      default:
       {
-        List<Alignment> alignments = const [Alignment.topLeft,    Alignment.topCenter,    Alignment.topRight,
-                                            Alignment.centerLeft, Alignment.center,       Alignment.centerRight,
-                                            Alignment.bottomLeft, Alignment.bottomCenter, Alignment.bottomRight,];
-        alignment = Alignment.center;
-        child = Stack(
-          children: [for (int i=0; i<=8; i++) Container(
-            alignment: alignments[i],
-            child: () {
-              if(cell.pencilCorner[i])
-              {
-                return FittedBox (
-                  fit: BoxFit.contain,
-                  child: Text(
-                    ' ${i+1} ', 
-                    style: TextStyle(fontSize:12, color: Colors.black),
-                  ),
-                );
-              }
-              return Text('');
-            }(),
-          )],
-        );
+        cell.marginColour = cell.selected?CellColours.selectedMargin:CellColours.notSelectedMargin;
+        if (cell.num != 0)
+        {
+          alignment = Alignment.center;
+          child = FittedBox(
+            fit: BoxFit.contain,
+            child: Text(
+              '${cell.num}',
+              style: TextStyle(fontSize: 40, color: cell.textColour)
+            ), 
+          );
+        }
+        else if(cell.pencilCenter.contains(true))
+        {
+          alignment = Alignment.center;
+          String txtStr = '';
+          for (int i = 0; i <= 8; i++)
+          {
+            if (cell.pencilCenter[i])
+            {
+              txtStr += '${i+1}';
+            }
+          }
+          child = FittedBox(
+            fit: BoxFit.fitWidth,
+            child: Text(txtStr,),
+          );
+        }
+        else if (cell.pencilCorner.contains(true))
+        {
+          List<Alignment> alignments = const [Alignment.topLeft,    Alignment.topCenter,    Alignment.topRight,
+                                              Alignment.centerLeft, Alignment.center,       Alignment.centerRight,
+                                              Alignment.bottomLeft, Alignment.bottomCenter, Alignment.bottomRight,];
+          alignment = Alignment.center;
+          child = Stack(
+            children: [for (int i=0; i<=8; i++) Container(
+              alignment: alignments[i],
+              child: () {
+                if(cell.pencilCorner[i])
+                {
+                  return FittedBox (
+                    fit: BoxFit.contain,
+                    child: Text(
+                      ' ${i+1} ', 
+                      style: TextStyle(fontSize:12, color: Colors.black),
+                    ),
+                  );
+                }
+                return Text('');
+              }(),
+            )],
+          );
+        }
+        else
+        {
+          alignment = Alignment.center;
+          child = Text('');
+        }      
       }
-      else
-      {
-        alignment = Alignment.center;
-        child = Text('');
-      }      
     }
-    if(cell.selected)cell.marginColour=CellColours.selectedMargin;
-    return Stack(
+    return InkWell(
+      onTap: () => selectBehaviour(selectInput),
+      child: Stack(
       children: [
         Container(
           color: cell.marginColour,
-          child: InkWell(
-            onTap: () => select(cell),
-            child: Container(
-              alignment: alignment,
-              color: () {
-                if (boardModePlay)
-                {
-                  return cell.colour;
-                }
-                return CellColours.setMode;
-              }(),
-              margin: EdgeInsets.only(
-                left: cell.leftMargin,
-                right: cell.rightMargin,
-                top: cell.topMargin,
-                bottom: cell.bottomMargin,
-              ),
-              child: child,
-            )
+          child: Container(
+            alignment: alignment,
+            color: () {
+              if (boardModePlay)
+              {
+                return cell.colour;
+              }
+              return CellColours.setMode;
+            }(),
+            margin: EdgeInsets.only(
+              left: cell.leftMargin,
+              right: cell.rightMargin,
+              top: cell.topMargin,
+              bottom: cell.bottomMargin,
+            ),
+            child: child,
           ),
         ),
         _varientOverlay(cell),
       ],
+      ),
     );
   }
 
@@ -504,28 +637,32 @@ class _BoardState extends State<Board>
     inputModeButtons.add(ElevatedButton( //number input mode button
       onPressed: ()
       {
-        boardModePlay?setMode(ButtonMode.number):setMode(ButtonMode.fixedNum);
+        boardModePlay?setButtonMode(ButtonMode.number):setButtonMode(ButtonMode.fixedNum);
       },
       child: Text('Numbers')
     ));
     if(boardModePlay)
     {
       inputModeButtons.add(ElevatedButton( // center pencil marks input mode button
-        onPressed: () => setMode(ButtonMode.pencilCenter), 
+        onPressed: () => setButtonMode(ButtonMode.pencilCenter), 
         child: Text('Center')
       ));
       inputModeButtons.add(ElevatedButton( //corner pencil marks input mode button
-        onPressed: () => setMode(ButtonMode.pencilCorner), 
+        onPressed: () => setButtonMode(ButtonMode.pencilCorner), 
         child: Image.asset('assets/PencilCorner.png'),
       ));
       inputModeButtons.add(ElevatedButton( // colour input mode button
-        onPressed: () => setMode(ButtonMode.colour), 
+        onPressed: () => setButtonMode(ButtonMode.colour), 
         child: Text('Colour')
       ));
     }else{
       inputModeButtons.add(ElevatedButton( // boxID input mode button
-        onPressed: () => setMode(ButtonMode.jigsaw), 
+        onPressed: () => setButtonMode(ButtonMode.setJigsaw), 
         child: Text('Set Jigsaw')
+      ));
+      inputModeButtons.add(ElevatedButton( // Killer input mode button
+        onPressed: () => setButtonMode(ButtonMode.setKiller), 
+        child: Text('Set Killer')
       ));
     }
     return inputModeButtons;
@@ -538,47 +675,40 @@ class _BoardState extends State<Board>
         color: Colors.orange,
         borderRadius: BorderRadius.all(Radius.circular(20)), 
       ),
-      child: GridView.builder(
+      child: GridView(
         padding: EdgeInsets.all(5),
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: 2,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 10
         ),
-        itemBuilder: (context, sector)
-        {
-          if(sector==0)
-          {
-            return Container(
-              alignment: Alignment.center,
-              child: ListView.builder(
-                padding: EdgeInsets.all(10),
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: 9,
-                itemBuilder: (context, number) 
-                {
-                  int boxContains = Sudoku.getNumberOfCellsInBox(number, board);
-                  return Container(
-                    alignment: Alignment.center,
-                    color: boxContains==9? const Color.fromARGB(255, 187, 255, 189):const Color.fromARGB(255, 255, 173, 167),
-                    child: Text('box ${String.fromCharCode(number+65)} contains $boxContains cells'),
-                  );
-                }
-              ),
-              
-            );
-          }
-         return DecoratedBox(
+        children:  [       
+          Container(
+            alignment: Alignment.center,
+            child: ListView.builder(
+              padding: EdgeInsets.all(10),
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 9,
+              itemBuilder: (context, number) 
+              {
+                int boxContains = Sudoku.getNumberOfCellsInBox(number, board);
+                return Container(
+                  alignment: Alignment.center,
+                  color: boxContains==9? const Color.fromARGB(255, 187, 255, 189):const Color.fromARGB(255, 255, 173, 167),
+                  child: Text('box ${String.fromCharCode(number+65)} contains $boxContains cells'),
+                );
+              }
+            ),
+          ),
+          DecoratedBox(
             decoration: const BoxDecoration(
               color: Colors.yellow,
               borderRadius: BorderRadius.all(Radius.circular(20)), 
             ),
             child: Column(
               children: [
-                Container
-                (
+                Container(
                   alignment: Alignment.topCenter,
                   child: Text('Configure Box Shapes'),
                 ),
@@ -612,14 +742,119 @@ class _BoardState extends State<Board>
                         alignment: Alignment.center,
                         child: Text(String.fromCharCode(boxId+65)),
                       ),
-                      
                     );
                   }
                 ),
               ],
             ),
-          );
-        }
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _killerInputZone()
+  {
+    var cages = [...constraints.where((c) => c.type==Variant.killer)];
+    constraints.removeWhere((c) => c.type==Variant.killer);
+    constraints.insertAll(0, cages); 
+    String text;
+    Color colour;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.greenAccent,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        children:[
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              padding: EdgeInsets.only(right: 20, left:20),
+              itemCount: cages.length,
+              itemBuilder: (context, index) 
+              {
+                return Row(
+                  children: [
+                    Text('Cage ID: $index'),
+                    Spacer(),
+                    Text('Size: ${constraints[index].appliesToIndexes.length}'),
+                    Spacer(),
+                    Text('Sum: ${constraints[index].sum}'),
+                    Spacer(),
+                    ElevatedButton(
+                      onPressed: ()
+                      {
+                        setState(() {
+                          editingCageId = index;
+                        });
+                      }, 
+                      child: Text('Edit')
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.only(bottom:20, left:20),
+            child: Row(
+              spacing: 40,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: editingCageId==null?Colors.blueGrey:Colors.green,
+                  ),
+                  onPressed: ()
+                  {
+                    setState(() {
+                      if(editingCageId==null)
+                      {
+                        if(newCageSum!=null)
+                        {
+                          constraints.insert(cages.length, KillerConstraint(Variant.killer, [], newCageSum!));
+                          editingCageId = cages.length;
+                        }                      
+                      }else
+                      {
+                        editingCageId = null;
+                        newCageSum = null;
+                      }                      
+                    });
+                  },
+                  child: Text(
+                    editingCageId==null?'new cage':'done!',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                Spacer(),
+                Container(
+                  padding: EdgeInsets.all(20),
+                  child: DropdownMenu(
+                    width: 120,
+                    initialSelection: 0,
+                    requestFocusOnTap: false,
+                    label: Text('Sum'),
+                    onSelected: (sum)
+                    {
+                      if (editingCageId==null)
+                      {
+                        newCageSum = sum;
+                      }else
+                      {
+                        setState(() {
+                          constraints[editingCageId!].sum = sum;
+                        });     
+                      } 
+                    },
+                    dropdownMenuEntries: killerSumSelection,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -627,10 +862,12 @@ class _BoardState extends State<Board>
   Widget _boardInputZone()
   {
     Widget zone;
-    switch(mode)
+    switch(buttonMode)
     {
-      case ButtonMode.jigsaw:
+      case ButtonMode.setJigsaw:
         zone = _jigsawModeInputZone();
+      case ButtonMode.setKiller:
+        zone = _killerInputZone();
       default:
         zone = GridView.builder(
           shrinkWrap: true,
@@ -658,7 +895,7 @@ class _BoardState extends State<Board>
     {
       textVal="X";
     }
-    switch (mode)
+    switch (buttonMode)
     {
       case ButtonMode.number:
         onPressFunction =()=> 
@@ -768,13 +1005,10 @@ class _BoardState extends State<Board>
     setState(() 
     {
       undoHistory = [];
-      for (Cell cell in board)
-        {
-          cell.unfix();
-          cell.pencilCorner = [false, false, false, false, false, false, false, false, false,];
-          cell.pencilCenter = [false, false, false, false, false, false, false, false, false,];
-          cell.updateColour(0);
-        }    
+      board = [];
+      constraints = [];
+      _populateBoard();
+      handleMargins(board);
     });
   }
 
@@ -789,6 +1023,16 @@ class _BoardState extends State<Board>
     }
   }
 
+  void _initialiseKillerSumSelection()
+  {
+    for(int i=0; i<=45; i++)
+    {
+      killerSumSelection.add(
+        DropdownMenuEntry(value: i, label: '$i')
+      );
+    }
+  }
+
   @override
   void initState()
   {
@@ -798,9 +1042,8 @@ class _BoardState extends State<Board>
     boardID = widget.initBoardID;
     if (boardModePlay)
     {
-      mode = ButtonMode.number;
+     buttonMode = ButtonMode.number;
     }
-    constraints = widget.constraints;
     name = widget.name;
     if (widget.board=='')
     {
@@ -856,7 +1099,7 @@ class _BoardState extends State<Board>
           {
             case Variant.killer:
               int sum = int.parse(groupingData[2]);
-              constraints.add([v, cells, sum]);
+              constraints.add(KillerConstraint(v, cells, sum));
           }
         }catch (e) //skip entries that cant be read, prevents a crash on bad data
         { 
@@ -864,215 +1107,223 @@ class _BoardState extends State<Board>
         }
       }
     }
+    _initialiseKillerSumSelection();
+    // constraints = [KillerConstraint(Variant.killer, [0,1,2,10,3,12,21,20], 6), KillerConstraint(Variant.killer, [50,51,41], 28), KillerConstraint(Variant.killer, [64,65,66,56,74], 0)];
   }
 
   @override
   Widget build(BuildContext context)
   {
     _doSave();
-    return Scaffold(
-      resizeToAvoidBottomInset : false,
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => MyHomePage())), 
-          icon: Icon(Icons.home)
-        ),
-        title: TextField( 
-          controller: TextEditingController(),
-          inputFormatters: [
-            FilteringTextInputFormatter.deny('|')
-          ],
-          maxLength: 20,
-          maxLengthEnforcement: MaxLengthEnforcement.enforced,
-          showCursor: false,
-          decoration: InputDecoration(
-            counterText: '',
-            border: InputBorder.none,
-            label: Row(children:[
-              Text('$name   '),
-              Icon(Icons.edit_note)
-              ]),
+    return GestureDetector(
+      onTap: (){FocusScope.of(context).requestFocus(FocusNode());},
+        child: Scaffold(
+        resizeToAvoidBottomInset : false,
+        appBar: AppBar(
+          leading: IconButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => MyHomePage())), 
+            icon: Icon(Icons.home)
           ),
-          onSubmitted: (String value)
-          {
-            setState(()
+          title: TextField( 
+            controller: TextEditingController(),
+            inputFormatters: [
+              FilteringTextInputFormatter.deny('|\n')
+            ],
+            maxLength: 20,
+            maxLengthEnforcement: MaxLengthEnforcement.enforced,
+            showCursor: false,
+            decoration: InputDecoration(
+              counterText: '',
+              border: InputBorder.none,
+              label: Row(children:[
+                Text('$name   '),
+                Icon(Icons.edit_note)
+                ]),
+            ),
+            onSubmitted: (String value)
             {
-              name = value;
-            });
-          },
+              setState(()
+              {
+                name = value;
+              });
+            },
+          ),
         ),
-      ),
-      body: Column(
-        children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                ElevatedButton( // set mode button | play mode button
-                  onPressed: () => boardModePlay? boardSetMode():boardPlayMode(),
-                  child: Text(boardModePlay?'Set Mode':'Play Mode'),
-                ),
-                ElevatedButton( //Undo button
-                  onPressed: ()=> _doUndo(), 
-                  child: Text('undo')),
-                ElevatedButton(
-                  onPressed: () => checkSol(),
-                  child: const Text('Check'),
-                ),
-                ElevatedButton(  // reset button
-                  onPressed: () => showDialog(
-                    context: context, 
-                    builder: (context) => AlertDialog(
-                      title:  Text(boardModePlay?'Clear Played Input?':'Clear EVERYTHING?'),
-                      content:  
-                        Text(boardModePlay?'Clears all inputed numbers, pencil marks, colours and undo history. This action cannot be undone.'
-                          :'This will empty the board. Everything will be gone, including fixed numbers and undo history.'),
-                      actions: [
-                        ElevatedButton( 
-                          onPressed: () => 
-                            { 
-                              Navigator.pop(context, 'ClearBoard'),
-                              boardModePlay? resetPlay():resetAll(),
-                            },
-                          child: Text('Yes')
-                        ),
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context, 'Cancel'), 
-                          child: Text('No'))
-                      ],
-                    )
+        body: Column(
+          children: [
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                spacing: 20,
+                children: [
+                  ElevatedButton( // set mode button | play mode button
+                    onPressed: () => boardModePlay? boardSetMode():boardPlayMode(),
+                    child: Text(boardModePlay?'Set Mode':'Play Mode'),
                   ),
-                  child: const Text('reset'),
-                ),
-                ElevatedButton( //hints button
-                  onPressed: ()
-                  {
-                    for (Cell cell in board)
-                    {
-                      cell.possibleVals= Sudoku.getPossibilities(board, cell);
-                    }
-
-                    List<Hint> hints = Sudoku.getHints(board);
-                    int hintIndex = -1;
-                    String nextText = hints.isEmpty?'Close':'Show Hints';
-
-                    showDialog(
+                  ElevatedButton( //Undo button
+                    onPressed: ()=> _doUndo(), 
+                    child: Text('undo')),
+                  ElevatedButton( //solve button
+                    onPressed: () => print(Sudoku.solve(board, constraints)),
+                    child: const Text('Solve'),
+                  ),
+                  ElevatedButton(  // reset button
+                    onPressed: () => showDialog(
                       context: context, 
-                      builder: (context)  
+                      builder: (context) => AlertDialog(
+                        title:  Text(boardModePlay?'Clear Played Input?':'Clear EVERYTHING?'),
+                        content:  
+                          Text(boardModePlay?'Clears all inputed numbers, pencil marks, colours and undo history. This action cannot be undone.'
+                            :'This will empty the board. Everything will be gone, including fixed numbers and undo history.'),
+                        actions: [
+                          ElevatedButton( 
+                            onPressed: () => 
+                              { 
+                                Navigator.pop(context, 'ClearBoard'),
+                                boardModePlay? resetPlay():resetAll(),
+                              },
+                            child: Text('Yes')
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, 'Cancel'), 
+                            child: Text('No'))
+                        ],
+                      )
+                    ),
+                    child: const Text('reset'),
+                  ),
+                  ElevatedButton( //hints button
+                    onPressed: ()
+                    {
+                      for (Cell cell in board)
                       {
-                        if (hintIndex>=0)
+                        cell.possibleVals= Sudoku.getPossibilities(board, cell);
+                      }
+
+                      List<Hint> hints = Sudoku.getHints(board);
+                      int hintIndex = -1;
+                      String nextText = hints.isEmpty?'Close':'Show Hints';
+
+                      showDialog(
+                        context: context, 
+                        builder: (context)  
                         {
-                          for(int index in hints[hintIndex].cellIds)
+                          if (hintIndex>=0)
                           {
-                            board[index].hint();
+                            for(int index in hints[hintIndex].cellIds)
+                            {
+                              board[index].hint();
+                            }
                           }
-                        }
-                        return StatefulBuilder(
-                          builder: (context, setAlertState)
-                          {
-                            return AlertDialog(
-                              title: Text('Hint!'),
-                              content: Text(hints.isEmpty?'Couldnt find any hints!':
-                                            hintIndex==-1?'You are about to look at some hints, are you sure you want to admit defeat?':
-                                            hints[hintIndex].text),
-                              actions: [
-                                ElevatedButton(
-                                  onPressed: () => 
-                                    { 
-                                      Navigator.pop(context, 'CloseHints'),
-                                      
-                                      if (hintIndex>-1)
-                                      for (int index in hints[hintIndex].cellIds)
-                                      {
-                                        board[index].unHint(),
-                                      }
-                                      
-                                    },
-                                  child: Text(hintIndex==-1?'Keep Trying':'Ok')
-                                ),
-                                ElevatedButton(
-                                  onPressed: () =>
-                                  {
-                                    if (hints.isEmpty)
-                                    {
-                                      Navigator.pop(context, 'close')
-                                    }
-                                    else if(hintIndex==hints.length-1)
-                                    {
-                                      setState((){
+                          return StatefulBuilder(
+                            builder: (context, setAlertState)
+                            {
+                              return AlertDialog(
+                                title: Text('Hint!'),
+                                content: Text(hints.isEmpty?'Couldnt find any hints!':
+                                              hintIndex==-1?'You are about to look at some hints, are you sure you want to admit defeat?':
+                                              hints[hintIndex].text),
+                                actions: [
+                                  ElevatedButton(
+                                    onPressed: () => 
+                                      { 
+                                        Navigator.pop(context, 'CloseHints'),
+                                        
+                                        if (hintIndex>-1)
                                         for (int index in hints[hintIndex].cellIds)
                                         {
-                                          board[index].unHint();
+                                          board[index].unHint(),
                                         }
-                                      }),
-                                      Navigator.pop(context, 'close')
-                                    }
-                                    else
+                                        
+                                      },
+                                    child: Text(hintIndex==-1?'Keep Trying':'Ok')
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () =>
                                     {
-                                      setAlertState(()
+                                      if (hints.isEmpty)
                                       {
-                                        setState(() {
-                                          if(hintIndex==-1)
+                                        Navigator.pop(context, 'close')
+                                      }
+                                      else if(hintIndex==hints.length-1)
+                                      {
+                                        setState((){
+                                          for (int index in hints[hintIndex].cellIds)
                                           {
-                                              clearSelected();
-                                              handleSeen(board[0]);
+                                            board[index].unHint();
                                           }
-                                          if(hintIndex>-1)
-                                          {
-                                            for (int index in hints[hintIndex].cellIds)
+                                        }),
+                                        Navigator.pop(context, 'close')
+                                      }
+                                      else
+                                      {
+                                        setAlertState(()
+                                        {
+                                          setState(() {
+                                            if(hintIndex==-1)
                                             {
-                                              board[index].unHint();
+                                                clearSelected();
+                                                handleSeen(board[0]);
                                             }
-                                          }
-                                          hintIndex+=1;
-                                          nextText = hintIndex==hints.length-1? 'Close':'Next Hint';
-                                          if (!hints.isEmpty)
-                                          {
-                                            for (int index in hints[hintIndex].cellIds)
+                                            if(hintIndex>-1)
                                             {
-                                              board[index].hint();
-                                            } 
-                                          }
-                                        });
-                                      }), 
-                                    }
-                                  },
-                                  child: Text(nextText)
-                                ),
-                              ],
-                            );
-                          }
-                        );
-                      }
-                    );
-                  },
-                  child: Text('Hints Pls'),
-                ),
-              ] 
+                                              for (int index in hints[hintIndex].cellIds)
+                                              {
+                                                board[index].unHint();
+                                              }
+                                            }
+                                            hintIndex+=1;
+                                            nextText = hintIndex==hints.length-1? 'Close':'Next Hint';
+                                            if (hints.isNotEmpty)
+                                            {
+                                              for (int index in hints[hintIndex].cellIds)
+                                              {
+                                                board[index].hint();
+                                              } 
+                                            }
+                                          });
+                                        }), 
+                                      }
+                                    },
+                                    child: Text(nextText)
+                                  ),
+                                ],
+                              );
+                            }
+                          );
+                        }
+                      );
+                    },
+                    child: Text('Hints Pls'),
+                  ),
+                ] 
+              ),
             ),
-          ),
-          Container(
-            margin: const EdgeInsets.all(5),
-            alignment: Alignment.center,
-            child: GridView.builder(
-              shrinkWrap: true,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 9,
-                childAspectRatio: 1,
-                ),
-              itemCount: 81,
-              physics: const NeverScrollableScrollPhysics(),
-              itemBuilder: (buildContext, index)
-              {
-                Cell cell = board[index];
-                return cellDisplay(cell);
-              },
+            Container(
+              margin: const EdgeInsets.all(5),
+              alignment: Alignment.center,
+              child: GridView.builder(
+                shrinkWrap: true,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 9,
+                  childAspectRatio: 1,
+                  ),
+                itemCount: 81,
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (buildContext, index)
+                {
+                  Cell cell = board[index];
+                  return cellDisplay(cell);
+                },
+              ),
             ),
-          ),
-          Row(children: _getInputModeButtons(),),
-          _boardInputZone(),
-        ],
+            Row(children: _getInputModeButtons(),),
+            _boardInputZone(),
+          ],
+        ),
       ),
     );
+    
+    
   }
 }
