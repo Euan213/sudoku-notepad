@@ -40,15 +40,32 @@ static Color getNewColour(int baseID, bool selected, bool seen,)
     return newColour;
   }
 
-static Color getTextColour(bool selected, bool same, bool fixed)
+static Color getMarginColour({bool? isSelected, int? boxId})
+{
+  if(boxId != null)
   {
-    if (same && !selected)
+    return baseColours[boxId];
+  }
+  if(isSelected!=null)
+  {
+    return isSelected?selectedMargin:notSelectedMargin;
+  }
+  throw('must call getMarginColour() with at least 1 supplied variable');
+}
+
+static Color getTextColour({bool? isSame, bool? isFixed, int? boxId})
+  {
+    if(boxId!=null)
     {
-      return sameNumText;
+      return baseColours[boxId];
     }
-    if (fixed)
+    if(isSame!=null)
     {
-      return fixedText;
+      if(isSame)return sameNumText;
+    }
+    if(isFixed!=null)
+    {
+      if(isFixed)return fixedText;
     }
     return baseText;
   }

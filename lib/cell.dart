@@ -52,7 +52,7 @@ class Cell {
     {
       isFixed = false;
     }
-    textColour = CellColours.getTextColour(selected, false, isFixed);
+    textColour = CellColours.getTextColour(isFixed: isFixed);
   }
   void unfix()
   {
@@ -76,10 +76,10 @@ class Cell {
     colour = CellColours.getNewColour(_baseColourId, selected, false);
   }
   
-  void doSameNum(bool same)
-  {
-    textColour = CellColours.getTextColour(selected, same, isFixed);
-  }
+  // void doSameNum(bool same)
+  // {
+  //   textColour = CellColours.getTextColour(isSame: same);
+  // }
 
   void doSeen(bool seen)
   {
@@ -90,7 +90,7 @@ class Cell {
   {
     selected = false;
     colour = CellColours.getNewColour(_baseColourId, selected, false);
-    textColour = CellColours.getTextColour(selected, false, isFixed);
+    textColour = CellColours.getTextColour();
   }
 
   void updateColour(int newID)
@@ -101,7 +101,7 @@ class Cell {
 
   void updateTextColour()
   {
-    textColour = CellColours.getTextColour(selected, false, isFixed);
+    textColour = CellColours.getTextColour();
   }
 
   void updateMarginColour(MarginType type)

@@ -156,13 +156,12 @@ class _BoardState extends State<Board>
             newCageSum = null;
           }
         }
-        default:{}
-      }
-      switch(m) //entering mode
-      {
-        case ButtonMode.setKiller:
+        case ButtonMode.setJigsaw:
         {
-          clearSelected();
+          for(Cell cell in board)
+          {
+            cell.marginColour = CellColours.getMarginColour(isSelected: cell.selected);
+          }
         }
         default:{}
       }
@@ -196,13 +195,25 @@ class _BoardState extends State<Board>
     }
   }
 
-  void handleSameNum(int newNum)
+  bool isSameNum(Cell cell)
   {
-    for (Cell cell in board)
+    if(selected.isNotEmpty)
     {
-      cell.doSameNum(cell.num==newNum && cell.num==0);
+      if (cell.num == selected[0].num)
+      {
+        return true;
+      }
     }
+    return false;
   }
+
+  // void handleSameNum(int newNum)
+  // {
+  //   for (Cell cell in board)
+  //   {
+  //     cell.doSameNum(cell.num==newNum && cell.num==0);
+  //   }
+  // }
 
   void handleSeen(Cell selectedCell)
   {
@@ -232,12 +243,10 @@ class _BoardState extends State<Board>
           if (cell.num == n)
           {
             cell.num = 0;
-            handleSameNum(0);
           }
           else
           {
           cell.num = n;
-          handleSameNum(n);        
           } 
         }
       }
@@ -367,12 +376,16 @@ class _BoardState extends State<Board>
       boardModePlay = false;
       buttonMode = ButtonMode.fixedNum;
       clearSelected();
-      handleSameNum(0);
       for (Cell cell in board)
       {
         cell.reset();
       }
     });
+  }
+
+  void jigsawSelect()
+  {
+    
   }
 
   void killerSelect(Cell thisCell)
@@ -405,7 +418,6 @@ class _BoardState extends State<Board>
       if (thisCell.selected)
       {
         clearSelected();
-        handleSameNum(0);
         handleSeen(thisCell);
         thisCell.marginColour = CellColours.notSelectedMargin;
       }else
@@ -415,10 +427,6 @@ class _BoardState extends State<Board>
         selected.add(thisCell);
         thisCell.marginColour = CellColours.selectedMargin;
         handleSeen(thisCell); 
-        if (boardModePlay)
-        {
-          handleSameNum(thisCell.num);
-        }
       }
     });
   }
@@ -513,28 +521,31 @@ class _BoardState extends State<Board>
     dynamic selectInput = cell;
     var selectBehaviour = (selectInput) => select(selectInput);
 
+    cell.textColour = CellColours.getTextColour(isFixed: cell.isFixed, isSame: isSameNum(cell));
+
     switch(buttonMode)
     {
       case ButtonMode.setJigsaw:
       {
-        cell.marginColour = CellColours.baseColours[cell.boxId];
+        cell.textColour = CellColours.getTextColour(boxId: cell.boxId);
+        cell.marginColour = CellColours.getMarginColour(boxId: cell.boxId);
         alignment = Alignment.center;
         child = FittedBox(
           fit: BoxFit.contain,
           child: Text(
             String.fromCharCode(cell.boxId+65),
-            style: TextStyle(fontSize: 40, color: CellColours.baseColours[cell.boxId])
+            style: TextStyle(fontSize: 40, color: cell.textColour)
           ), 
         );
       }
       case ButtonMode.setKiller:
       {
+        clearSelected();
         selectInput = cell;
         selectBehaviour = (selectInput) => killerSelect(cell);
         alignment = Alignment.center;
         if (cell.num != 0 && cell.isFixed)
         {
-          
           child = FittedBox(
             fit: BoxFit.contain,
             child: Text(
