@@ -42,6 +42,9 @@ class _BoardState extends State<Board>
   //list of constraints & related data
   List<dynamic> constraints = [];
 
+  //Jigsaw
+  int? editingBoxId;
+
   //killer
   List<DropdownMenuEntry> killerSumSelection=[];
   int? editingCageId;
@@ -146,7 +149,7 @@ class _BoardState extends State<Board>
   {
     setState(()
     {
-      switch(buttonMode) //leaving mode
+      switch(buttonMode) //leaving a mode instructions
       {
         case ButtonMode.setKiller:
         {
@@ -158,6 +161,7 @@ class _BoardState extends State<Board>
         }
         case ButtonMode.setJigsaw:
         {
+          editingBoxId = null;
           for(Cell cell in board)
           {
             cell.marginColour = CellColours.getMarginColour(isSelected: cell.selected);
@@ -192,6 +196,11 @@ class _BoardState extends State<Board>
     {
       neighbors = _getNeighborsFromIndexes(Sudoku.getNeighbors(cell), cell);
       cell.updateMargins(neighbors);
+      for(Cell n in neighbors)
+      {
+        n.updateMargins(_getNeighborsFromIndexes(Sudoku.getNeighbors(n), n));
+      }
+
     }
   }
 
@@ -206,14 +215,6 @@ class _BoardState extends State<Board>
     }
     return false;
   }
-
-  // void handleSameNum(int newNum)
-  // {
-  //   for (Cell cell in board)
-  //   {
-  //     cell.doSameNum(cell.num==newNum && cell.num==0);
-  //   }
-  // }
 
   void handleSeen(Cell selectedCell)
   {
@@ -308,21 +309,6 @@ class _BoardState extends State<Board>
     });
   }
 
-  void _setBoxId(int boxId)
-  {
-    setState(() {
-      if(selected.isNotEmpty)
-      {
-        for(Cell cell in selected)
-        {
-          cell.boxId = boxId;
-          handleMargins(_getNeighborsFromIndexes(Sudoku.getNeighbors(cell),cell));
-          handleMargins([cell]);
-        }
-      }
-    });
-  } 
-
   void _doUndo()
   {
     setState(() {
@@ -383,9 +369,15 @@ class _BoardState extends State<Board>
     });
   }
 
-  void jigsawSelect()
+  void jigsawSelect(Cell thisCell)
   {
-    
+    setState(() {
+      if(editingBoxId!=null)
+      {
+        thisCell.boxId = editingBoxId!;
+        handleMargins([thisCell]);
+      }
+    });
   }
 
   void killerSelect(Cell thisCell)
@@ -527,6 +519,9 @@ class _BoardState extends State<Board>
     {
       case ButtonMode.setJigsaw:
       {
+        clearSelected();
+        selectInput = cell;
+        selectBehaviour = (selectInput) => jigsawSelect(selectInput);
         cell.textColour = CellColours.getTextColour(boxId: cell.boxId);
         cell.marginColour = CellColours.getMarginColour(boxId: cell.boxId);
         alignment = Alignment.center;
@@ -729,7 +724,7 @@ class _BoardState extends State<Board>
               children: [
                 Container(
                   alignment: Alignment.topCenter,
-                  child: Text('Configure Box Shapes'),
+                  child: Text(editingBoxId==null?'Choose a box to edit':'Editing box ${String.fromCharCode(editingBoxId!+65)}'),
                 ),
                 GridView.builder(
                   shrinkWrap: true,
@@ -749,13 +744,21 @@ class _BoardState extends State<Board>
                     return ElevatedButton(
                       onPressed: ()
                       {
-                        _setBoxId(boxId);
+                        setState(() {
+                          if(editingBoxId!=boxId)
+                          {
+                            editingBoxId = boxId;
+                          }else
+                          {
+                            editingBoxId = null;
+                          }
+                        });
                       }, 
                       style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
-                        backgroundColor: const Color.fromARGB(255, 255, 248, 183),
+                        backgroundColor: editingBoxId!=boxId? const Color.fromARGB(255, 255, 248, 183):const Color.fromARGB(255, 218, 211, 150),
                       ),
                       child:Container(
                         alignment: Alignment.center,
