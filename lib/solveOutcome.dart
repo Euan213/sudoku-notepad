@@ -1,1 +1,1 @@
-enum SolveOutcome {success, noSolution, noUniqueSolution}
+enum SolveOutcome {success, impossible, noSolutionFound}

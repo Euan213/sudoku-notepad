@@ -1,3 +1,4 @@
+import 'package:sudoku_notepad/board.dart';
 import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/hint.dart';
 import 'package:sudoku_notepad/hintType.dart';
@@ -96,13 +97,39 @@ class Sudoku
     return list;
   }
 
-  static bool checkSolved(List<Cell> board)
+  static Set<int> _getRowMembersFromIndex(int index )
   {
-    for (Cell cell in board)
+    Set<int> m = {};
+    int id = index;
+    while(id~/9 == index~/9 && id>= 0)
     {
-      if (cell.num == 0) return false; 
+      m.add(id);
+      id--;
     }
-    return true;
+    id = index;
+    while(id~/9 == index~/9)
+    {
+      m.add(id);
+      id++;
+    }
+    return m;
+  }
+  static Set<int> _getColumnMembersFromIndex(int index)
+  {
+    Set<int> m = {};
+    int id = index;
+    while(id>= 0)
+    {
+      m.add(id);
+      id-=9;
+    }
+    id = index;
+    while(id<=80)
+    {
+      m.add(id);
+      id+=9;
+    }
+    return m;
   }
 
   static List<bool> getPossibilities(List<Cell> board, Cell forThis)
@@ -122,7 +149,7 @@ class Sudoku
     return possible;
   }
 
-  static List<Hint> _hiddenSingleSearch(List<List<List<bool>>> sector, HintType type)
+  static List<Hint> _hiddenSingleHintSearch(List<List<List<bool>>> sector, HintType type)
   {
     List<Hint> hints = [];
     Hint newHint;
@@ -193,9 +220,9 @@ class Sudoku
       cols[cell.index%9].add(cell.num==0?cell.possibleVals:[false,false,false,false,false,false,false,false,false]);
       boxes[cell.boxId].add(cell.num==0?cell.possibleVals:[false,false,false,false,false,false,false,false,false]);
     }
-    hints += _hiddenSingleSearch(rows, HintType.row);
-    hints += _hiddenSingleSearch(cols, HintType.column);
-    hints += _hiddenSingleSearch(boxes, HintType.box);
+    hints += _hiddenSingleHintSearch(rows, HintType.row);
+    hints += _hiddenSingleHintSearch(cols, HintType.column);
+    hints += _hiddenSingleHintSearch(boxes, HintType.box);
 
     for (Hint hint in hints)
     {
@@ -206,75 +233,190 @@ class Sudoku
     return hints;
   }
 
-  static bool _isInputValid(Cell cell, List<Cell> board)
+  static void _updatePossibleValsOnInput(Cell cell, List<Cell> board)
   {
-    bool valid = true;
-    for(Cell comparer in board)
+    cell.possibleVals = [false,false,false,false,false,false,false,false,false,];
+    Set<int> updateUs = _getBoxMembers(cell.boxId, board).toSet();
+    updateUs.addAll(_getColumnMembersFromIndex(cell.index));
+    updateUs.addAll(_getRowMembersFromIndex(cell.index));
+    for(int index in updateUs)
     {
-      if (isSeen(cell, comparer) && cell.num==comparer.num)
-      {
-        valid = false;
-        break;
-      }
+      board[index].possibleVals[cell.num-1] = false;
     }
-    return valid;
   }
 
-  static (SolveOutcome, List<Cell>) _basicSolve(List<Cell> board)
+  static bool _cellHasNoOptionsCheck(List<Cell> board)
   {
-    int delme = 0;
-    int max = 0;
-    List<int> indexStack = [];
-    bool backtracked = false;
-    for(int i=0; i<81;)
-    {  
-      if(delme%1000000==0)
+    for(Cell cell in board)
+    {
+      if(!cell.possibleVals.contains(true) && cell.num==0)
       {
-        print(delme);
-        print('searching');
-        print('currently at index $i max index is $max');
+        return true;
       }
-      if(i>max)max=i;
-      delme++;
-      if(board[i].isFixed)
-      {
-        i++;
-        continue;
-      }
-      if(!backtracked)
-      {
-        board[i].num = 0;
-      }
-      backtracked = false;
-      
-      board[i].num++;
-      while(!_isInputValid(board[i], board))
-      {
-        board[i].num++;
-      }
-      if(board[i].num>9)
-      {
-        board[i].num=0;
-        backtracked = true;
-        if(indexStack.isEmpty)return(SolveOutcome.noSolution, []);
-        i = indexStack.removeLast();
-        continue;
-      }
-      if(!backtracked)indexStack.add(i);
-      i++;            
     }
-    return (SolveOutcome.success, board);
+    return false;
   }
 
-  static (SolveOutcome, List<Cell>) solve(List<Cell> board, List<dynamic> constraints)
+  static bool _fillNakedSingles(List<Cell> board)
   {
-    (SolveOutcome, List<Cell>) outcome = _basicSolve(board);
-    if(constraints.isEmpty)
+    bool change = false;
+    int onlyP;
+    for(Cell cell in board)
     {
-      print(outcome);
-      return outcome;
-      
+      if(cell.num==0)
+      {
+        if(cell.possibleVals.where((p) => p==true).length==1)
+        {
+          onlyP = cell.possibleVals.indexOf(true)+1;
+          cell.num = onlyP;
+          change = true;
+          _updatePossibleValsOnInput(cell, board);
+        }
+      }
     }
-    return _basicSolve(board);
+    return change;
   }
+
+  static bool _loopOverSectorsForHiddenSingle(Set<int> sector, List<Cell> board)
+  {
+    int occurrences;
+    Cell hiddenSingle;
+    bool changed = false;
+
+    for(int num=0; num<9; num++)
+    {
+      occurrences=0;
+      for(int i in sector)
+      {
+        if(board[i].possibleVals[num])
+        {
+          occurrences++;
+        }
+      }
+      if(occurrences==1)
+      {
+        hiddenSingle = board[sector.where((index) => board[index].possibleVals[num]).toList()[0]];
+        hiddenSingle.num = num+1;
+        _updatePossibleValsOnInput(hiddenSingle, board);
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  static bool _fillHiddenSingles(List<Cell> board)
+  {
+    Set<int> row;
+    Set<int> col;
+    List<int> box;
+    bool changed = false;
+    for(int sectorId=0; sectorId<9; sectorId++)
+    {
+      row = _getRowMembersFromIndex(sectorId);
+      box = _getBoxMembers(sectorId, board);
+      col = _getColumnMembersFromIndex(sectorId);
+      changed = _loopOverSectorsForHiddenSingle(row, board) 
+              | _loopOverSectorsForHiddenSingle(col, board) 
+              | _loopOverSectorsForHiddenSingle(box.toSet(), board)
+              | changed;
+    }
+    return changed;
+  }
+
+  static SolveOutcome logicalSolve(List<Cell> board)
+  {
+    Cell cell;
+    for(cell in board)
+    {
+      cell.possibleVals = getPossibilities(board, cell);
+    }
+    bool tryAgain = true;
+    bool error = false;
+    while(tryAgain && !error)
+    {
+      error = _cellHasNoOptionsCheck(board);
+      tryAgain = _fillNakedSingles(board) 
+               | _fillHiddenSingles(board);
+    }
+    for(cell in board)
+    {
+      if(cell.num==0)
+      {
+        print('not solved');
+        print(error);
+        return SolveOutcome.noSolutionFound;
+      }
+    }
+    return SolveOutcome.success;
+  }
+
+  // static bool _isInputValid(Cell cell, List<Cell> board)
+  // {
+  //   bool valid = true;
+  //   for(Cell comparer in board)
+  //   {
+  //     if (isSeen(cell, comparer) && cell.num==comparer.num)
+  //     {
+  //       valid = false;
+  //       break;
+  //     }
+  //   }
+  //   return valid;
+  // }  
+
+  // static (SolveOutcome, List<Cell>) _bruteForce(List<Cell> board)
+  // {
+  //   int delme = 0;
+  //   int max = 0;
+  //   List<int> indexStack = [];
+  //   bool backtracked = false;
+  //   for(int i=0; i<81;)
+  //   {  
+  //     if(delme%1000000==0)
+  //     {
+  //       print(delme);
+  //       print('searching');
+  //       print('currently at index $i max index is $max');
+  //     }
+  //     if(i>max)max=i;
+  //     delme++;
+  //     if(board[i].isFixed)
+  //     {
+  //       i++;
+  //       continue;
+  //     }
+  //     if(!backtracked)
+  //     {
+  //       board[i].num = 0;
+  //     }
+  //     backtracked = false;
+  //     board[i].num++;
+  //     while(!_isInputValid(board[i], board))
+  //     {
+  //       board[i].num++;
+  //     }
+  //     if(board[i].num>9)
+  //     {
+  //       board[i].num=0;
+  //       backtracked = true;
+  //       if(indexStack.isEmpty)return(SolveOutcome.noSolution, []);
+  //       i = indexStack.removeLast();
+  //       continue;
+  //     }
+  //     if(!backtracked)indexStack.add(i);
+  //     i++;            
+  //   }
+  //   return (SolveOutcome.success, board);
+  // }
+
+  // static (SolveOutcome, List<Cell>) solve(List<Cell> board, List<dynamic> constraints)
+  // {
+    // (SolveOutcome, List<Cell>) outcome = _basicSolve(board);
+    // if(constraints.isEmpty)
+    // {
+    //   print(outcome);
+    //   return outcome;
+    // }
+    // return _basicSolve(board);
+  // }
 }

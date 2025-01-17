@@ -998,17 +998,6 @@ class _BoardState extends State<Board>
       child: child,
     );
   }
-
-  void checkSol()
-  {
-    setState(()
-    {
-      if (Sudoku.checkSolved(board))
-      {
-
-      }
-    });
-  }
   
   void resetPlay()
   {
@@ -1194,7 +1183,12 @@ class _BoardState extends State<Board>
                     onPressed: ()=> _doUndo(), 
                     child: Text('undo')),
                   ElevatedButton( //solve button
-                    onPressed: () => print(Sudoku.solve(board, constraints)),
+                    onPressed: () 
+                    {
+                      setState(() {
+                        Sudoku.logicalSolve(board);
+                      });
+                    },
                     child: const Text('Solve'),
                   ),
                   ElevatedButton(  // reset button

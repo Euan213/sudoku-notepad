@@ -4,7 +4,7 @@ import 'package:sudoku_notepad/marginType.dart';
 import 'package:sudoku_notepad/sudoku.dart';
 
 class Cell {
-  int index;
+  final int index;
   int boxId;
   bool isFixed = false;
 
