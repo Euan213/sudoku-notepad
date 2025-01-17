@@ -583,7 +583,7 @@ class _BoardState extends State<Board>
             child: Text(txtStr,),
           );
         }
-        else if (cell.pencilCorner.contains(true))
+        else if (cell.pencilCorner.contains(false)) //change to true
         {
           List<Alignment> alignments = const [Alignment.topLeft,    Alignment.topCenter,    Alignment.topRight,
                                               Alignment.centerLeft, Alignment.center,       Alignment.centerRight,
@@ -593,7 +593,7 @@ class _BoardState extends State<Board>
             children: [for (int i=0; i<=8; i++) Container(
               alignment: alignments[i],
               child: () {
-                if(cell.pencilCorner[i])
+                if(cell.possibleVals[i]) // change to pencilcorner
                 {
                   return FittedBox (
                     fit: BoxFit.contain,
@@ -831,9 +831,9 @@ class _BoardState extends State<Board>
           Container(
             padding: EdgeInsets.only(bottom:20, left:20),
             child: Row(
-              spacing: 40,
+              // spacing: 40,
               children: [
-                ElevatedButton(
+                ElevatedButton( //new killer cage button
                   style: ElevatedButton.styleFrom(
                     backgroundColor: editingCageId==null?Colors.blueGrey:Colors.green,
                   ),
@@ -859,6 +859,11 @@ class _BoardState extends State<Board>
                   ),
                 ),
                 Spacer(),
+                Text(
+                  newCageSum==null?'Please select a cage sum':'',
+                  style: TextStyle(color: Colors.red),
+                ),
+                Spacer(),
                 Container(
                   padding: EdgeInsets.all(20),
                   child: DropdownMenu(
@@ -868,15 +873,15 @@ class _BoardState extends State<Board>
                     label: Text('Sum'),
                     onSelected: (sum)
                     {
-                      if (editingCageId==null)
-                      {
-                        newCageSum = sum;
-                      }else
-                      {
-                        setState(() {
-                          constraints[editingCageId!].sum = sum;
-                        });     
-                      } 
+                      setState(() {
+                        if (editingCageId==null)
+                        {
+                          newCageSum = sum;
+                        }else
+                        {
+                            constraints[editingCageId!].sum = sum;
+                        }   
+                      });
                     },
                     dropdownMenuEntries: killerSumSelection,
                   ),
@@ -1173,7 +1178,7 @@ class _BoardState extends State<Board>
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                spacing: 20,
+                // spacing: 20,
                 children: [
                   ElevatedButton( // set mode button | play mode button
                     onPressed: () => boardModePlay? boardSetMode():boardPlayMode(),

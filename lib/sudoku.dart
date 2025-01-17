@@ -1,4 +1,3 @@
-import 'package:sudoku_notepad/board.dart';
 import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/hint.dart';
 import 'package:sudoku_notepad/hintType.dart';
@@ -323,6 +322,46 @@ class Sudoku
     return changed;
   }
 
+  static bool _setTheoryChecker(List<Cell> board)
+  {
+    List<Set<int>> boxes = [];
+    List<Set<int>> rows = [];
+    List<Set<int>> cols = [];
+    bool changed = false;
+
+    for(int i=0; i<9; i++)
+    {
+      boxes.add(_getBoxMembers(i, board).toSet());
+      rows.add(_getRowMembers(i).toSet());
+      cols.add(_getColumnMembers(i).toSet());
+    }
+    for(Set<int> setA in [...boxes, ...rows, ...cols])
+    {
+      for(int num=0; num<9; num++)
+      {
+        Set<int> subset = setA.where((cell) => board[cell].possibleVals[num]==true).toSet();
+        // if(setA==boxes[0])print(subset);
+        for(Set<int> setB in [...boxes, ...rows, ...cols])
+        {
+          if(setB.containsAll(subset) && subset.isNotEmpty && setB != setA)
+          {
+            print(subset);
+            for(int cell in setB)
+            {
+              if(board[cell].possibleVals[num] && !subset.contains(cell))
+              {
+                board[cell].possibleVals[num] = false;
+                changed = true;
+                print('set theory applied to $cell for number ${num+1}');
+              }
+            }
+          }
+        }
+      }
+    }
+    return changed;
+  }
+
   static SolveOutcome logicalSolve(List<Cell> board)
   {
     Cell cell;
@@ -336,7 +375,8 @@ class Sudoku
     {
       error = _cellHasNoOptionsCheck(board);
       tryAgain = _fillNakedSingles(board) 
-               | _fillHiddenSingles(board);
+               | _fillHiddenSingles(board)
+               | _setTheoryChecker(board);
     }
     for(cell in board)
     {
