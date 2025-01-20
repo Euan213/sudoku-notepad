@@ -348,7 +348,7 @@ class _BoardState extends State<Board>
   {
     setState(() {
       boardModePlay = true;
-      buttonMode = ButtonMode.number;
+      setButtonMode(ButtonMode.number);
       
       clearSelected();
       handleSeen(board[0]);
@@ -360,7 +360,7 @@ class _BoardState extends State<Board>
   {
     setState(() {
       boardModePlay = false;
-      buttonMode = ButtonMode.fixedNum;
+      setButtonMode(ButtonMode.fixedNum);
       clearSelected();
       for (Cell cell in board)
       {
@@ -788,50 +788,70 @@ class _BoardState extends State<Board>
       child: Column(
         mainAxisSize: MainAxisSize.max,
         children:[
-          SizedBox(
-            height: 120,
-            child: ListView.builder(
-              padding: EdgeInsets.only(right: 20, left:20),
-              itemCount: cages.length,
-              itemBuilder: (context, index) 
-              {
-                return Row(
-                  children: [
-                    Text('Cage ID: $index'),
-                    Spacer(),
-                    Text('Size: ${constraints[index].appliesToIndexes.length}'),
-                    Spacer(),
-                    Text('Sum: ${constraints[index].sum}'),
-                    Spacer(),
-                    ElevatedButton(
-                      onPressed: ()
-                      {
-                        setState(() {
-                          editingCageId = index;
-                        });
-                      }, 
-                      child: Text('Edit')
-                    ),
-                    Spacer(),
-                    IconButton(
-                      onPressed: ()
-                      {
-                        setState(() {
-                          constraints.removeAt(index);
-                          editingCageId=null;
-                        });
-                      }, 
-                      icon: const Icon(Icons.delete, color: Colors.red,)
-                    )
-                  ],
-                );
-              },
+          Container(
+            margin: EdgeInsets.all(10),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.lightGreen,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: SizedBox(
+                height: 80,
+                child: cages.isEmpty? 
+                Container(
+                  alignment: Alignment.center,
+                  child: Text('Existing Cages Will Go Here! \nSelect a sum and tap the new cage button!'), 
+                ):
+                ListView.builder(
+                  padding: EdgeInsets.only(right: 20, left:20),
+                  itemCount: cages.length,
+                  itemBuilder: (context, index) 
+                  {
+                    return Column(
+                    children: [
+                      Row(
+                        children: [
+                          Text('Cage ID: $index'),
+                          Spacer(),
+                          Text('Size: ${constraints[index].appliesToIndexes.length}'),
+                          Spacer(),
+                          Text('Sum: ${constraints[index].sum}'),
+                          Spacer(),
+                          IconButton(
+                            onPressed: ()
+                            {
+                              setState(() {
+                                editingCageId = index;
+                              });
+                            }, 
+                            icon: const Icon(Icons.settings, color: Colors.amber,)
+                          ),
+                          Spacer(),
+                          IconButton(
+                            onPressed: ()
+                            {
+                              setState(() {
+                                constraints.removeAt(index);
+                                editingCageId=null;
+                              });
+                            }, 
+                            icon: const Icon(Icons.delete, color: Colors.red,)
+                          )
+                        ],
+                      ),
+                      Divider(
+
+                      ),
+                    ]);
+                  },
+                ),
+              ),
             ),
           ),
           Container(
-            padding: EdgeInsets.only(bottom:20, left:20),
+            padding: EdgeInsets.only(left:20),
             child: Row(
-              // spacing: 40,
+              spacing: 40,
               children: [
                 ElevatedButton( //new killer cage button
                   style: ElevatedButton.styleFrom(
@@ -859,11 +879,6 @@ class _BoardState extends State<Board>
                   ),
                 ),
                 Spacer(),
-                Text(
-                  newCageSum==null?'Please select a cage sum':'',
-                  style: TextStyle(color: Colors.red),
-                ),
-                Spacer(),
                 Container(
                   padding: EdgeInsets.all(20),
                   child: DropdownMenu(
@@ -879,7 +894,7 @@ class _BoardState extends State<Board>
                           newCageSum = sum;
                         }else
                         {
-                            constraints[editingCageId!].sum = sum;
+                          constraints[editingCageId!].sum = sum;
                         }   
                       });
                     },
@@ -888,6 +903,12 @@ class _BoardState extends State<Board>
                 ),
               ],
             ),
+          ),
+          Text(
+            newCageSum==null?'Please select a cage sum':
+            editingCageId==null?'Press the New Cage Button to create a cage!':
+            'Tap the cells you want occupied by cage $editingCageId',
+            style: TextStyle(color: Colors.red),
           ),
         ],
       ),

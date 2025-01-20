@@ -322,12 +322,31 @@ class Sudoku
     return changed;
   }
 
+  static bool _tryUpdatePossibleValsOfSet(Set<int> set, Set<int> nums, List<Cell> board)
+  {
+    bool changed = false;
+    for(int num in nums)
+    {
+      for(int cell in set)
+      {
+        if(board[cell].possibleVals[num-1])
+        {
+          board[cell].possibleVals[num-1] = false;
+          changed = true;
+          print('deduction applied to cell $cell to remove $num as an option');
+        }
+      }
+    }
+    return changed;
+  }
+
   static bool _setTheoryChecker(List<Cell> board)
   {
     List<Set<int>> boxes = [];
     List<Set<int>> rows = [];
     List<Set<int>> cols = [];
     bool changed = false;
+    Set<int> setBWithoutSubset;
 
     for(int i=0; i<9; i++)
     {
@@ -337,27 +356,107 @@ class Sudoku
     }
     for(Set<int> setA in [...boxes, ...rows, ...cols])
     {
-      for(int num=0; num<9; num++)
+      for(int num=1; num<=9; num++)
       {
-        Set<int> subset = setA.where((cell) => board[cell].possibleVals[num]==true).toSet();
-        // if(setA==boxes[0])print(subset);
+        Set<int> subset = setA.where((cell) => board[cell].possibleVals[num-1]==true).toSet();
         for(Set<int> setB in [...boxes, ...rows, ...cols])
         {
           if(setB.containsAll(subset) && subset.isNotEmpty && setB != setA)
           {
+            print('set theory applied');
             print(subset);
-            for(int cell in setB)
-            {
-              if(board[cell].possibleVals[num] && !subset.contains(cell))
-              {
-                board[cell].possibleVals[num] = false;
-                changed = true;
-                print('set theory applied to $cell for number ${num+1}');
-              }
-            }
+            setBWithoutSubset = setB.difference(subset);
+
+            changed = _tryUpdatePossibleValsOfSet(setBWithoutSubset, {num}, board);
           }
         }
       }
+    }
+    return changed;
+  }
+
+  static bool _recursiveSearchForGroupExclusivity(Set<int> group, Set<int> seenGroupA, List<Cell> board)
+  {
+    bool changed = false;
+    Set<int> seenGroupB;
+    Set<int> newSeenGroup;
+    Set<int> groupPossibleVals = {};
+    Set<int> cellBPossibleVals = {};
+    // if(group.contains(30))
+    // {
+    //   print(group);
+    // }
+    for(int cell in group)
+    {
+      for(final (num, exists) in board[cell].possibleVals.indexed)
+      {
+        if(exists)
+        {
+          groupPossibleVals.add(num+1);
+        }
+      }
+    }
+    if(group.length == groupPossibleVals.length)
+    {
+      print('group exclusivity applied');
+      print(group);
+      Set<int> row = _getRowMembersFromIndex(group.toList()[0]);
+      Set<int> col = _getColumnMembersFromIndex(group.toList()[0]);
+      Set<int> box = _getBoxMembers(board[group.toList()[0]].boxId, board).toSet();
+      if(row.containsAll(group))
+      {
+        changed = _tryUpdatePossibleValsOfSet(row.difference(group), groupPossibleVals, board);
+      }
+      if(col.containsAll(group))
+      {
+        changed = _tryUpdatePossibleValsOfSet(col.difference(group), groupPossibleVals, board);
+      }
+      if(box.containsAll(group))
+      {
+        changed = _tryUpdatePossibleValsOfSet(box.difference(group), groupPossibleVals, board);
+      }
+      return changed;
+    } 
+    if(group.length==8 || groupPossibleVals.length==8)
+    {
+      return false;
+    }
+
+    for(int cellB in seenGroupA)
+    {
+      for(final (num, exists) in board[cellB].possibleVals.indexed)
+      {
+        if(exists)
+        {
+          cellBPossibleVals.add(num+1);
+        }
+      }
+      print(seenGroupA);
+      print('group: $group, group possible vals $groupPossibleVals, cell b $cellB cell b possible vals $cellBPossibleVals');
+      if(groupPossibleVals.intersection(cellBPossibleVals).isNotEmpty)
+      {
+        seenGroupB = {..._getRowMembersFromIndex(cellB), ..._getBoxMembers(board[cellB].boxId, board), ..._getColumnMembersFromIndex(cellB)};
+        seenGroupB.remove(cellB);
+        newSeenGroup = seenGroupA.intersection(seenGroupB).difference(group);
+        print('neeseengrwp $newSeenGroup group $group');
+        changed = _recursiveSearchForGroupExclusivity({...group, cellB}, newSeenGroup, board)
+                | changed;
+      }
+    }
+    return changed;
+  }
+
+  static bool _groupExclusivityChecker(List<Cell> board)
+  {
+    bool changed = false;
+    for(Cell cell in board)
+    {
+      if(cell.num!=0)continue;
+      Set<int> group = {cell.index}; 
+      Set<int> seenGroup = {..._getRowMembersFromIndex(cell.index), ..._getBoxMembers(cell.boxId, board).toSet(), ..._getColumnMembersFromIndex(cell.index)};
+      seenGroup.remove(cell.index);
+      changed = changed
+              | _recursiveSearchForGroupExclusivity(group, seenGroup, board);
     }
     return changed;
   }
@@ -374,16 +473,20 @@ class Sudoku
     while(tryAgain && !error)
     {
       error = _cellHasNoOptionsCheck(board);
+      // try{
       tryAgain = _fillNakedSingles(board) 
                | _fillHiddenSingles(board)
-               | _setTheoryChecker(board);
+               | _setTheoryChecker(board)
+               | _groupExclusivityChecker(board);
+      // }catch(e){}
+      // tryAgain = false;
     }
     for(cell in board)
     {
       if(cell.num==0)
       {
         print('not solved');
-        print(error);
+        print('error is $error');
         return SolveOutcome.noSolutionFound;
       }
     }
