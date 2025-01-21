@@ -31,7 +31,17 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        colorScheme: ColorScheme(
+          brightness: Brightness.dark,
+          surface: Color.fromARGB(255, 41, 64, 78),
+          onSurface: const Color.fromARGB(255, 0, 0, 0),
+          primary: Colors.black,
+          onPrimary: const Color.fromARGB(255, 255, 15, 15),
+          secondary: const Color.fromARGB(255, 124, 74, 0),
+          onSecondary: Colors.amber,
+          error: Colors.red,
+          onError: Colors.black,
+        ),
         useMaterial3: true,
       ),
       home: const MyHomePage(),

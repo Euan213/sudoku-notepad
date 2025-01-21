@@ -616,66 +616,81 @@ class _BoardState extends State<Board>
       }
     }
     return InkWell(
-      onTap: () => selectBehaviour(selectInput),
-      child: Stack(
-      children: [
-        Container(
-          color: cell.marginColour,
-          child: Container(
-            alignment: alignment,
-            color: () {
-              if (boardModePlay)
-              {
-                return cell.colour;
-              }
-              return CellColours.setMode;
-            }(),
-            margin: EdgeInsets.only(
-              left: cell.leftMargin,
-              right: cell.rightMargin,
-              top: cell.topMargin,
-              bottom: cell.bottomMargin,
+        onTap: () => selectBehaviour(selectInput),
+        child: Stack(
+        children: [
+          Container(
+            color: cell.marginColour,
+              padding: EdgeInsets.only(
+                left: cell.leftMargin,
+                right: cell.rightMargin,
+                top: cell.topMargin,
+                bottom: cell.bottomMargin,   
+              ),         
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(width: 0),
+                borderRadius: BorderRadius.circular(3),
+                color: boardModePlay? cell.colour: CellColours.setMode,
+              ),
+              child: Container(
+                alignment: alignment,
+
+                
+                child: child,
+              ),
             ),
-            child: child,
           ),
+          _varientOverlay(cell),
+        ],
         ),
-        _varientOverlay(cell),
-      ],
-      ),
-    );
+      );
+      
+
   }
 
   List<Widget> _getInputModeButtons()
   {
     List<Widget> inputModeButtons = [];
-    inputModeButtons.add(ElevatedButton( //number input mode button
-      onPressed: ()
-      {
-        boardModePlay?setButtonMode(ButtonMode.number):setButtonMode(ButtonMode.fixedNum);
-      },
-      child: Text('Numbers')
-    ));
+    ButtonStyle style(ButtonMode mode) => ElevatedButton.styleFrom(backgroundColor: buttonMode==mode? const Color.fromARGB(255, 0, 163, 109): Colors.blueGrey);
+    void pressAction(ButtonMode newMode) => setButtonMode(newMode!=buttonMode? newMode: boardModePlay? ButtonMode.number:ButtonMode.fixedNum);
+
     if(boardModePlay)
     {
+      inputModeButtons.add(ElevatedButton( // number input mode button
+        style: style(ButtonMode.number),
+        onPressed: () => pressAction(ButtonMode.number), 
+        child: Text('Numbers')
+      ));
       inputModeButtons.add(ElevatedButton( // center pencil marks input mode button
-        onPressed: () => setButtonMode(ButtonMode.pencilCenter), 
+        onPressed: () => pressAction(ButtonMode.pencilCenter), 
+        style: style(ButtonMode.pencilCenter),
         child: Text('Center')
       ));
       inputModeButtons.add(ElevatedButton( //corner pencil marks input mode button
-        onPressed: () => setButtonMode(ButtonMode.pencilCorner), 
+        style: style(ButtonMode.pencilCorner),
+        onPressed: () => pressAction(ButtonMode.pencilCorner), 
         child: Image.asset('assets/PencilCorner.png'),
       ));
       inputModeButtons.add(ElevatedButton( // colour input mode button
-        onPressed: () => setButtonMode(ButtonMode.colour), 
+        style: style(ButtonMode.colour),
+        onPressed: () => pressAction(ButtonMode.colour), 
         child: Text('Colour')
       ));
     }else{
+      inputModeButtons.add(ElevatedButton( // fixed number input mode button
+        style: style(ButtonMode.fixedNum),
+        onPressed: () => pressAction(ButtonMode.fixedNum), 
+        child: Text('Fixed Numbers')
+      ));
       inputModeButtons.add(ElevatedButton( // boxID input mode button
-        onPressed: () => setButtonMode(ButtonMode.setJigsaw), 
+        style: style(ButtonMode.setJigsaw),
+        onPressed: () => pressAction(ButtonMode.setJigsaw), 
         child: Text('Set Jigsaw')
       ));
       inputModeButtons.add(ElevatedButton( // Killer input mode button
-        onPressed: () => setButtonMode(ButtonMode.setKiller), 
+        style: style(ButtonMode.setKiller),
+        onPressed: () => pressAction(ButtonMode.setKiller), 
         child: Text('Set Killer')
       ));
     }
@@ -851,7 +866,7 @@ class _BoardState extends State<Board>
           Container(
             padding: EdgeInsets.only(left:20),
             child: Row(
-              spacing: 40,
+              // spacing: 40,
               children: [
                 ElevatedButton( //new killer cage button
                   style: ElevatedButton.styleFrom(
@@ -1352,20 +1367,28 @@ class _BoardState extends State<Board>
             Container(
               margin: const EdgeInsets.all(5),
               alignment: Alignment.center,
-              child: GridView.builder(
-                shrinkWrap: true,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 9,
-                  childAspectRatio: 1,
+              child: (){
+                final cols = 9;
+                final width = MediaQuery.of(context).size.width;
+                return SizedBox(
+                  width: 370,
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 9,
+                      childAspectRatio: 1,
+                      ),
+                    itemCount: 81,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (buildContext, index)
+                    {
+                      Cell cell = board[index];
+                      return cellDisplay(cell);
+                    },
                   ),
-                itemCount: 81,
-                physics: const NeverScrollableScrollPhysics(),
-                itemBuilder: (buildContext, index)
-                {
-                  Cell cell = board[index];
-                  return cellDisplay(cell);
-                },
-              ),
+                );
+              }(),
+
             ),
             Row(children: _getInputModeButtons(),),
             _boardInputZone(),

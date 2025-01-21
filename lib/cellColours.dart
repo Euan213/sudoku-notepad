@@ -5,7 +5,7 @@ class CellColours
   CellColours._();
 
   static List<Color> baseColours = [
-                         Color.fromARGB(255, 251, 228, 184),
+                         Color.fromARGB(255, 184, 251, 249),
                          Colors.blue, 
                          Colors.red, 
                          Colors.cyan, 
@@ -15,9 +15,9 @@ class CellColours
                          Colors.brown, 
                          Colors.orange, 
                          Colors.grey];
-  static Color setMode = const Color.fromARGB(255, 202, 193, 255);
+  static Color setMode = const Color.fromARGB(255, 137, 255, 133);
   static Color sameNumText = const Color.fromARGB(255, 76, 173, 185);
-  static Color fixedText = const Color.fromARGB(255, 1, 97, 4);
+  static Color fixedText = const Color.fromARGB(255, 0, 124, 4);
   static Color baseText = Colors.black;
   static Color seenHighlighter = const Color.fromARGB(66, 162, 161, 162);
   static Color selectedMargin = Colors.yellow;

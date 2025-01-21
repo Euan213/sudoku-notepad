@@ -382,10 +382,7 @@ class Sudoku
     Set<int> newSeenGroup;
     Set<int> groupPossibleVals = {};
     Set<int> cellBPossibleVals = {};
-    // if(group.contains(30))
-    // {
-    //   print(group);
-    // }
+    Set<int> alreadyChecked={};
     for(int cell in group)
     {
       for(final (num, exists) in board[cell].possibleVals.indexed)
@@ -398,8 +395,8 @@ class Sudoku
     }
     if(group.length == groupPossibleVals.length)
     {
-      print('group exclusivity applied');
-      print(group);
+      // print('group exclusivity applied');
+      // print('group: $group with possible vals: $groupPossibleVals');
       Set<int> row = _getRowMembersFromIndex(group.toList()[0]);
       Set<int> col = _getColumnMembersFromIndex(group.toList()[0]);
       Set<int> box = _getBoxMembers(board[group.toList()[0]].boxId, board).toSet();
@@ -424,6 +421,8 @@ class Sudoku
 
     for(int cellB in seenGroupA)
     {
+      alreadyChecked.add(cellB);
+      cellBPossibleVals = {};
       for(final (num, exists) in board[cellB].possibleVals.indexed)
       {
         if(exists)
@@ -431,15 +430,12 @@ class Sudoku
           cellBPossibleVals.add(num+1);
         }
       }
-      print(seenGroupA);
-      print('group: $group, group possible vals $groupPossibleVals, cell b $cellB cell b possible vals $cellBPossibleVals');
       if(groupPossibleVals.intersection(cellBPossibleVals).isNotEmpty)
       {
-        seenGroupB = {..._getRowMembersFromIndex(cellB), ..._getBoxMembers(board[cellB].boxId, board), ..._getColumnMembersFromIndex(cellB)};
+        seenGroupB = {..._getRowMembersFromIndex(cellB), ..._getBoxMembers(board[cellB].boxId, board), ..._getColumnMembersFromIndex(cellB)}.where((index) => board[index].num==0).toSet();
         seenGroupB.remove(cellB);
         newSeenGroup = seenGroupA.intersection(seenGroupB).difference(group);
-        print('neeseengrwp $newSeenGroup group $group');
-        changed = _recursiveSearchForGroupExclusivity({...group, cellB}, newSeenGroup, board)
+        changed = _recursiveSearchForGroupExclusivity({...group, cellB}, newSeenGroup.difference(alreadyChecked), board)
                 | changed;
       }
     }
@@ -453,7 +449,7 @@ class Sudoku
     {
       if(cell.num!=0)continue;
       Set<int> group = {cell.index}; 
-      Set<int> seenGroup = {..._getRowMembersFromIndex(cell.index), ..._getBoxMembers(cell.boxId, board).toSet(), ..._getColumnMembersFromIndex(cell.index)};
+      Set<int> seenGroup = {..._getRowMembersFromIndex(cell.index), ..._getBoxMembers(cell.boxId, board).toSet(), ..._getColumnMembersFromIndex(cell.index)}.where((index) => board[index].num==0).toSet();
       seenGroup.remove(cell.index);
       changed = changed
               | _recursiveSearchForGroupExclusivity(group, seenGroup, board);
@@ -473,13 +469,10 @@ class Sudoku
     while(tryAgain && !error)
     {
       error = _cellHasNoOptionsCheck(board);
-      // try{
       tryAgain = _fillNakedSingles(board) 
                | _fillHiddenSingles(board)
                | _setTheoryChecker(board)
                | _groupExclusivityChecker(board);
-      // }catch(e){}
-      // tryAgain = false;
     }
     for(cell in board)
     {
@@ -492,7 +485,6 @@ class Sudoku
     }
     return SolveOutcome.success;
   }
-
   // static bool _isInputValid(Cell cell, List<Cell> board)
   // {
   //   bool valid = true;
