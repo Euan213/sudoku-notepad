@@ -20,7 +20,8 @@ class Cell {
   int _baseColourId = 0;
   Color colour = CellColours.baseColours[0];
   Color textColour = CellColours.fixedText;
-  Color marginColour = CellColours.notSelectedMargin;
+  Color marginColour = CellColours.baseMargin;
+  bool onHint = false;
 
   bool selected = false;
 
@@ -69,34 +70,34 @@ class Cell {
     pencilCenter[n-1] == !pencilCenter[n-1];
   }
 
+  void changeHintStatus()
+  {
+    onHint = !onHint;
+  }
+
   void doSelect()
   {
     selected = !selected;
-    updateMarginColour(selected? MarginType.selected:MarginType.base);
-    colour = CellColours.getNewColour(_baseColourId, selected, false);
-  }
-  
-  // void doSameNum(bool same)
-  // {
-  //   textColour = CellColours.getTextColour(isSame: same);
-  // }
-
-  void doSeen(bool seen)
-  {
-    colour = CellColours.getNewColour(_baseColourId, selected, seen);
+    colour = CellColours.getNewColour(baseId:_baseColourId, selected: selected);
   }
 
   void reset()
   {
     selected = false;
-    colour = CellColours.getNewColour(_baseColourId, selected, false);
+    colour = CellColours.getNewColour(baseId:_baseColourId, selected:selected);
     textColour = CellColours.getTextColour();
   }
 
-  void updateColour(int newID)
+  void getColour({required bool setMode,
+                  required bool isSeen,
+                  required bool selected})
   {
-    _baseColourId = newID;
-    colour = CellColours.getNewColour(_baseColourId, selected, false);
+    colour = CellColours.getNewColour(baseId:_baseColourId, isSetMode:setMode, seen:isSeen, selected:selected, hinting: onHint);
+  }
+
+    void updateBaseId(int newId)
+  {
+    _baseColourId = newId;
   }
 
   void updateTextColour()
@@ -109,23 +110,11 @@ class Cell {
     switch(type)
     {
       case MarginType.base:
-        marginColour = CellColours.notSelectedMargin;
-      case MarginType.selected:
-        marginColour = CellColours.selectedMargin;
+        marginColour = CellColours.baseMargin;
+
       case MarginType.hint:
         marginColour = CellColours.hintMargin;
     }
-  }
-
-  void hint()
-  {
-    colour = Color.alphaBlend(CellColours.hintHighlighter, colour);
-    updateMarginColour(MarginType.hint);
-  }
-  void unHint()
-  {
-    colour = CellColours.getNewColour(_baseColourId, selected, false);
-    updateMarginColour(MarginType.base);
   }
 
   void updateMargins(List<Cell> neighbors)

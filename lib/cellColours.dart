@@ -20,15 +20,16 @@ class CellColours
   static Color fixedText = const Color.fromARGB(255, 0, 124, 4);
   static Color baseText = Colors.black;
   static Color seenHighlighter = const Color.fromARGB(66, 162, 161, 162);
-  static Color selectedMargin = Colors.yellow;
   static Color selectedHighlighter = const Color.fromARGB(213, 255, 235, 59);
-  static Color notSelectedMargin = Colors.black;
+  static Color baseMargin = Colors.black;
   static Color hintMargin = const Color.fromARGB(255, 15, 227, 255);
-  static Color hintHighlighter = const Color.fromARGB(136, 15, 227, 255);
+  static Color hinted = const Color.fromARGB(255, 255, 15, 223);
 
-static Color getNewColour(int baseID, bool selected, bool seen,)
+static Color getNewColour({int baseId=0, bool selected=false, bool seen=false, bool isSetMode=false, bool hinting=false})
   {
-    Color newColour = baseColours[baseID];
+    Color newColour = isSetMode? setMode:
+                      hinting? hinted:
+                      baseColours[baseId];
     if (selected)
     {
       newColour = Color.alphaBlend(selectedHighlighter, newColour);
@@ -40,17 +41,15 @@ static Color getNewColour(int baseID, bool selected, bool seen,)
     return newColour;
   }
 
-static Color getMarginColour({bool? isSelected, int? boxId})
+static Color getMarginColour({int? boxId})
 {
   if(boxId != null)
   {
     return baseColours[boxId];
   }
-  if(isSelected!=null)
-  {
-    return isSelected?selectedMargin:notSelectedMargin;
+  else{
+    return baseMargin;
   }
-  throw('must call getMarginColour() with at least 1 supplied variable');
 }
 
 static Color getTextColour({bool? isSame, bool? isFixed, int? boxId})

@@ -4,7 +4,6 @@ import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/buttonMode.dart';
 import 'package:sudoku_notepad/constraint.dart';
 import 'package:sudoku_notepad/killerConstraint.dart';
-import 'package:sudoku_notepad/main.dart';
 import 'package:sudoku_notepad/move.dart';
 import 'package:sudoku_notepad/saveLoad.dart';
 import 'package:sudoku_notepad/sudoku.dart';
@@ -28,6 +27,8 @@ class Board extends StatefulWidget{
 
 class _BoardState extends State<Board>
 {
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
   late String name;
   late int boardID;
   var undoHistory = [];
@@ -36,6 +37,7 @@ class _BoardState extends State<Board>
   ButtonMode selectMode = ButtonMode.number;
   DateTime lastSave = DateTime.now();
 
+  bool hinting = false;
   List<Cell> board = [];
   late bool boardModePlay;
 
@@ -164,7 +166,7 @@ class _BoardState extends State<Board>
           editingBoxId = null;
           for(Cell cell in board)
           {
-            cell.marginColour = CellColours.getMarginColour(isSelected: cell.selected);
+            cell.marginColour = CellColours.getMarginColour();
           }
         }
         default:{}
@@ -214,14 +216,6 @@ class _BoardState extends State<Board>
       }
     }
     return false;
-  }
-
-  void handleSeen(Cell selectedCell)
-  {
-    for (Cell cell in board)
-    {
-      cell.doSeen(Sudoku.isSeen(selectedCell, cell) && selectedCell.selected);
-    }
   }
 
   void clearSelected()
@@ -305,7 +299,7 @@ class _BoardState extends State<Board>
   void setColour(int n, Cell cell)
   {
     setState(() {
-      cell.updateColour(n);
+      cell.updateBaseId(n);
     });
   }
 
@@ -351,7 +345,6 @@ class _BoardState extends State<Board>
       setButtonMode(ButtonMode.number);
       
       clearSelected();
-      handleSeen(board[0]);
 
     });
   }
@@ -410,15 +403,11 @@ class _BoardState extends State<Board>
       if (thisCell.selected)
       {
         clearSelected();
-        handleSeen(thisCell);
-        thisCell.marginColour = CellColours.notSelectedMargin;
       }else
       {
         clearSelected();
         thisCell.doSelect();
         selected.add(thisCell);
-        thisCell.marginColour = CellColours.selectedMargin;
-        handleSeen(thisCell); 
       }
     });
   }
@@ -513,6 +502,15 @@ class _BoardState extends State<Board>
     dynamic selectInput = cell;
     var selectBehaviour = (selectInput) => select(selectInput);
 
+    cell.getColour(
+      selected: cell.selected, 
+      setMode: !boardModePlay, 
+      isSeen: selected.isEmpty? false:Sudoku.isSeen(selected[0], cell)
+    );
+    if(cell.onHint && !hinting)
+    {
+      cell.changeHintStatus();
+    }
     cell.textColour = CellColours.getTextColour(isFixed: cell.isFixed, isSame: isSameNum(cell));
 
     switch(buttonMode)
@@ -555,7 +553,6 @@ class _BoardState extends State<Board>
       }
       default:
       {
-        cell.marginColour = cell.selected?CellColours.selectedMargin:CellColours.notSelectedMargin;
         if (cell.num != 0)
         {
           alignment = Alignment.center;
@@ -615,38 +612,35 @@ class _BoardState extends State<Board>
         }      
       }
     }
-    return InkWell(
-        onTap: () => selectBehaviour(selectInput),
-        child: Stack(
-        children: [
-          Container(
-            color: cell.marginColour,
-              padding: EdgeInsets.only(
-                left: cell.leftMargin,
-                right: cell.rightMargin,
-                top: cell.topMargin,
-                bottom: cell.bottomMargin,   
-              ),         
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border.all(width: 0),
-                borderRadius: BorderRadius.circular(3),
-                color: boardModePlay? cell.colour: CellColours.setMode,
-              ),
-              child: Container(
-                alignment: alignment,
 
-                
-                child: child,
-              ),
+    return InkWell(
+      onTap: () => selectBehaviour(selectInput),
+      child: Stack(
+      children: [
+        Container(
+          color: cell.marginColour,
+            padding: EdgeInsets.only(
+              left: cell.leftMargin,
+              right: cell.rightMargin,
+              top: cell.topMargin,
+              bottom: cell.bottomMargin,   
+            ),         
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(width: 0),
+              borderRadius: BorderRadius.circular(3),
+              color: cell.colour,
+            ),
+            child: Container(
+              alignment: alignment,
+              child: child,
             ),
           ),
-          _varientOverlay(cell),
-        ],
         ),
-      );
-      
-
+        _varientOverlay(cell),
+      ],
+      ),
+    );
   }
 
   List<Widget> _getInputModeButtons()
@@ -657,11 +651,6 @@ class _BoardState extends State<Board>
 
     if(boardModePlay)
     {
-      inputModeButtons.add(ElevatedButton( // number input mode button
-        style: style(ButtonMode.number),
-        onPressed: () => pressAction(ButtonMode.number), 
-        child: Text('Numbers')
-      ));
       inputModeButtons.add(ElevatedButton( // center pencil marks input mode button
         onPressed: () => pressAction(ButtonMode.pencilCenter), 
         style: style(ButtonMode.pencilCenter),
@@ -678,11 +667,6 @@ class _BoardState extends State<Board>
         child: Text('Colour')
       ));
     }else{
-      inputModeButtons.add(ElevatedButton( // fixed number input mode button
-        style: style(ButtonMode.fixedNum),
-        onPressed: () => pressAction(ButtonMode.fixedNum), 
-        child: Text('Fixed Numbers')
-      ));
       inputModeButtons.add(ElevatedButton( // boxID input mode button
         style: style(ButtonMode.setJigsaw),
         onPressed: () => pressAction(ButtonMode.setJigsaw), 
@@ -1054,7 +1038,7 @@ class _BoardState extends State<Board>
             cell.pencilCorner = [false, false, false, false, false, false, false, false, false,];
             cell.pencilCenter = [false, false, false, false, false, false, false, false, false,];
           }
-          cell.updateColour(0);
+          cell.updateBaseId(0);
           cell.updateTextColour();
         }    
     });
@@ -1132,7 +1116,7 @@ class _BoardState extends State<Board>
         {
           newCell.pencilCorner[int.parse(num)-1] = true;
         }
-        newCell.updateColour(int.parse(cellData[4]));
+        newCell.updateBaseId(int.parse(cellData[4]));
         newCell.updateTextColour();
         i++;
         board.add(newCell);
@@ -1179,11 +1163,18 @@ class _BoardState extends State<Board>
       onTap: (){FocusScope.of(context).requestFocus(FocusNode());},
         child: Scaffold(
         resizeToAvoidBottomInset : false,
+        key: scaffoldKey,
         appBar: AppBar(
           leading: IconButton(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => MyHomePage())), 
-            icon: Icon(Icons.home)
+            onPressed: () => scaffoldKey.currentState!.openEndDrawer(),
+            icon: Icon(Icons.menu),
           ),
+          
+          // IconButton(
+          //   onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => MyHomePage())), 
+          //   icon: Icon(Icons.home)
+          // ),
+          actions: [Text('hi')],
           title: TextField( 
             controller: TextEditingController(),
             inputFormatters: [
@@ -1208,6 +1199,12 @@ class _BoardState extends State<Board>
               });
             },
           ),
+        ),
+        endDrawer: Drawer(
+          backgroundColor: const Color.fromARGB(255, 0, 60, 109),
+          child: 
+            Text('$name options'),
+          
         ),
         body: Column(
           children: [
@@ -1257,14 +1254,14 @@ class _BoardState extends State<Board>
                     ),
                     child: const Text('reset'),
                   ),
-                  ElevatedButton( //hints button
+                  ElevatedButton( //hints button hint button
                     onPressed: ()
                     {
+                      hinting = true;
                       for (Cell cell in board)
                       {
                         cell.possibleVals= Sudoku.getPossibilities(board, cell);
                       }
-
                       List<Hint> hints = Sudoku.getHints(board);
                       int hintIndex = -1;
                       String nextText = hints.isEmpty?'Close':'Show Hints';
@@ -1273,13 +1270,6 @@ class _BoardState extends State<Board>
                         context: context, 
                         builder: (context)  
                         {
-                          if (hintIndex>=0)
-                          {
-                            for(int index in hints[hintIndex].cellIds)
-                            {
-                              board[index].hint();
-                            }
-                          }
                           return StatefulBuilder(
                             builder: (context, setAlertState)
                             {
@@ -1293,17 +1283,11 @@ class _BoardState extends State<Board>
                                     onPressed: () => 
                                       { 
                                         Navigator.pop(context, 'CloseHints'),
-                                        
-                                        if (hintIndex>-1)
-                                        for (int index in hints[hintIndex].cellIds)
-                                        {
-                                          board[index].unHint(),
-                                        }
-                                        
+                                        hinting = false,
                                       },
                                     child: Text(hintIndex==-1?'Keep Trying':'Ok')
                                   ),
-                                  ElevatedButton(
+                                  ElevatedButton( //next hint button
                                     onPressed: () =>
                                     {
                                       if (hints.isEmpty)
@@ -1315,7 +1299,7 @@ class _BoardState extends State<Board>
                                         setState((){
                                           for (int index in hints[hintIndex].cellIds)
                                           {
-                                            board[index].unHint();
+                                            board[index].changeHintStatus();
                                           }
                                         }),
                                         Navigator.pop(context, 'close')
@@ -1327,14 +1311,13 @@ class _BoardState extends State<Board>
                                           setState(() {
                                             if(hintIndex==-1)
                                             {
-                                                clearSelected();
-                                                handleSeen(board[0]);
+                                              clearSelected();
                                             }
                                             if(hintIndex>-1)
                                             {
                                               for (int index in hints[hintIndex].cellIds)
                                               {
-                                                board[index].unHint();
+                                                board[index].changeHintStatus();
                                               }
                                             }
                                             hintIndex+=1;
@@ -1343,7 +1326,7 @@ class _BoardState extends State<Board>
                                             {
                                               for (int index in hints[hintIndex].cellIds)
                                               {
-                                                board[index].hint();
+                                                board[index].changeHintStatus();
                                               } 
                                             }
                                           });
@@ -1368,10 +1351,9 @@ class _BoardState extends State<Board>
               margin: const EdgeInsets.all(5),
               alignment: Alignment.center,
               child: (){
-                final cols = 9;
                 final width = MediaQuery.of(context).size.width;
                 return SizedBox(
-                  width: 370,
+                  width: width,
                   child: GridView.builder(
                     shrinkWrap: true,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
