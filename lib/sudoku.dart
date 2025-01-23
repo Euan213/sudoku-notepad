@@ -7,6 +7,8 @@ class Sudoku
 {
   Sudoku._();
 
+  static int sum=0;
+
   static bool _sameRow(Cell cell_1, Cell cell_2)
   {
     return (cell_1.index~/9 == cell_2.index~/9 && cell_1.index~/9 == cell_2.index~/9);
@@ -377,6 +379,7 @@ class Sudoku
 
   static bool _recursiveSearchForGroupExclusivity(Set<int> group, Set<int> seenGroupA, List<Cell> board)
   {
+    sum++;
     bool changed = false;
     Set<int> seenGroupB;
     Set<int> newSeenGroup;
@@ -395,8 +398,8 @@ class Sudoku
     }
     if(group.length == groupPossibleVals.length)
     {
-      // print('group exclusivity applied');
-      // print('group: $group with possible vals: $groupPossibleVals');
+      print('group exclusivity applied');
+      print('group: $group with possible vals: $groupPossibleVals');
       Set<int> row = _getRowMembersFromIndex(group.toList()[0]);
       Set<int> col = _getColumnMembersFromIndex(group.toList()[0]);
       Set<int> box = _getBoxMembers(board[group.toList()[0]].boxId, board).toSet();
@@ -459,6 +462,7 @@ class Sudoku
 
   static SolveOutcome logicalSolve(List<Cell> board)
   {
+    sum=0;
     Cell cell;
     for(cell in board)
     {
@@ -478,11 +482,13 @@ class Sudoku
     {
       if(cell.num==0)
       {
+        print(sum);
         print('not solved');
         print('error is $error');
         return SolveOutcome.noSolutionFound;
       }
     }
+    print(sum);
     return SolveOutcome.success;
   }
   // static bool _isInputValid(Cell cell, List<Cell> board)

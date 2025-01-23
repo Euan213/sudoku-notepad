@@ -580,7 +580,7 @@ class _BoardState extends State<Board>
             child: Text(txtStr,),
           );
         }
-        else if (cell.pencilCorner.contains(false)) //change to true
+        else if (cell.pencilCorner.contains(true)) //change to true
         {
           List<Alignment> alignments = const [Alignment.topLeft,    Alignment.topCenter,    Alignment.topRight,
                                               Alignment.centerLeft, Alignment.center,       Alignment.centerRight,
@@ -590,13 +590,21 @@ class _BoardState extends State<Board>
             children: [for (int i=0; i<=8; i++) Container(
               alignment: alignments[i],
               child: () {
-                if(cell.possibleVals[i]) // change to pencilcorner
+                if(cell.pencilCorner[i]) // change to pencilcorner
                 {
-                  return FittedBox (
-                    fit: BoxFit.contain,
-                    child: Text(
-                      ' ${i+1} ', 
-                      style: TextStyle(fontSize:12, color: Colors.black),
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: selected.isNotEmpty && selected[0].num==i+1? 
+                            CellColours.selectedHighlighter
+                            :const Color.fromARGB(0, 255, 255, 255),
+                      borderRadius: BorderRadius.circular(3)
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: Text(
+                        ' ${i+1} ', 
+                        style: TextStyle(fontSize:12, color: Colors.black),
+                      ),
                     ),
                   );
                 }
@@ -1068,10 +1076,7 @@ class _BoardState extends State<Board>
     TextStyle textStyle;
     VoidCallback onPressFunction;
     Widget child;
-    if (number==0)
-    {
-      textVal="X";
-    }
+
     switch (buttonMode)
     {
       case ButtonMode.number:
@@ -1137,13 +1142,30 @@ class _BoardState extends State<Board>
       default:
         throw 'unimplemented case for boardMode value'; 
     }
- 
+    if (number==0)
+    {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: colour,
+        ),
+        onPressed: onPressFunction, 
+        child: FittedBox(
+          fit: BoxFit.fill,
+          child: Text(
+            'Clear',
+            textAlign: TextAlign.center,
+            textScaler: TextScaler.linear(2),
+          )
+        )
+      );
+    }
 
     return ElevatedButton(
       onPressed: onPressFunction,
       style: ElevatedButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         backgroundColor: colour,
-        
       ),
       child: child,
     );
@@ -1340,6 +1362,7 @@ class _BoardState extends State<Board>
                   Container(
                     alignment: Alignment.bottomLeft,
                     child: IconButton(
+                      color: Colors.grey,
                       icon: Icon(Icons.home),
                       onPressed: () => Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => MyHomePage()), (route) => false),
                     ),
@@ -1347,6 +1370,7 @@ class _BoardState extends State<Board>
                   Container(
                     alignment: Alignment.bottomRight,
                     child: IconButton(
+                      color: Colors.grey,
                       icon: Icon(Icons.save),
                       onPressed: () => 
                       {
@@ -1361,6 +1385,7 @@ class _BoardState extends State<Board>
               Text(
                 'Currently in ${boardModePlay? 'play':'set'} mode',
                 textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey,),
               ),
               Container(
                 padding: EdgeInsets.only(left: 20, right: 20,),

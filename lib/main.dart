@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
           surface: Color.fromARGB(255, 41, 64, 78),
           onSurface: const Color.fromARGB(255, 0, 0, 0),
           primary: Colors.black,
-          onPrimary: const Color.fromARGB(255, 255, 15, 15),
+          onPrimary: const Color.fromARGB(255, 6, 58, 100),
           secondary: const Color.fromARGB(255, 124, 74, 0),
           onSecondary: Colors.amber,
           error: Colors.red,
@@ -70,24 +70,52 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        automaticallyImplyLeading: false,
-        title: Text('Home'),
-      ),
+      // appBar: AppBar(
+      //   backgroundColor: const Color.fromARGB(255, 6, 58, 100),
+      //   automaticallyImplyLeading: false,
+      //   title: Text('Home'),
+      // ),
       body: Center(
         child: Column(
+          spacing: 20,
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>
           [
+            Spacer(),
+            Text('APP ICON HERE PROBALY'),
+            Spacer(),
             ElevatedButton(
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => Board(-1, [], false, '', 'New Puzzle'))),
-              child: Text('New Puzzle'),
-            ),            
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                backgroundColor: Colors.green
+              ),
+              child: SizedBox(
+                height: 100,
+                width: 70,
+                child: Container(
+                  alignment: Alignment.center,
+                  child: Text('New Puzzle', textAlign: TextAlign.center, textScaler: TextScaler.linear(1.5),),
+                ),
+              ),
+            ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => SavesPage())),
-              child: Text('Saves'),
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                backgroundColor: Colors.green
+              ),
+              child: SizedBox(
+                height: 100,
+                width: 90,
+                child: Container(
+                  alignment: Alignment.center,
+                  child: Text('Saved Puzzles', textAlign: TextAlign.center, textScaler: TextScaler.linear(1.5),),
+                ),
+              ),
             ),
+            Spacer(),
+
           ],
         ),
       ),
