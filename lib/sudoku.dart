@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart';
 import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/hint.dart';
 import 'package:sudoku_notepad/hintType.dart';
@@ -460,7 +461,7 @@ class Sudoku
     return changed;
   }
 
-  static SolveOutcome logicalSolve(List<Cell> board)
+  static SolveOutcome logicalSolve(List<Cell> board, List<dynamic> varients)
   {
     sum=0;
     Cell cell;
@@ -470,13 +471,17 @@ class Sudoku
     }
     bool tryAgain = true;
     bool error = false;
+    int difficultyIndicator = 0;
     while(tryAgain && !error)
     {
       error = _cellHasNoOptionsCheck(board);
-      tryAgain = _fillNakedSingles(board) 
-               | _fillHiddenSingles(board)
-               | _setTheoryChecker(board)
-               | _groupExclusivityChecker(board);
+      difficultyIndicator==0?tryAgain = _fillNakedSingles(board) 
+                                      | _fillHiddenSingles(board)
+      :difficultyIndicator==1? tryAgain = _setTheoryChecker(board)
+      :difficultyIndicator==2? tryAgain = _groupExclusivityChecker(board)
+      :{};
+
+      tryAgain? difficultyIndicator=0 : difficultyIndicator++;
     }
     for(cell in board)
     {

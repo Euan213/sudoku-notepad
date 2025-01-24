@@ -667,7 +667,7 @@ class _BoardState extends State<Board>
       inputModeButtons.add(ElevatedButton( //corner pencil marks input mode button
         style: style(ButtonMode.pencilCorner),
         onPressed: () => pressAction(ButtonMode.pencilCorner), 
-        child: Image.asset('assets/PencilCorner.png'),
+        child: Text('Corner'),
       ));
       inputModeButtons.add(ElevatedButton( // colour input mode button
         style: style(ButtonMode.colour),
@@ -1405,15 +1405,15 @@ class _BoardState extends State<Board>
               ),
               Container(
                 padding: EdgeInsets.only(left:20, right: 20,),
-              child: ElevatedButton( //solve button
-                onPressed: () 
-                {
-                  setState(() {
-                    Sudoku.logicalSolve(board);
-                  });
-                },
-                child: const Text('Show Solution'),
-              ),
+                child: ElevatedButton( //solve button
+                  onPressed: () 
+                  {
+                    setState(() {
+                      Sudoku.logicalSolve(board, constraints);
+                    });
+                  },
+                  child: const Text('Show Solution'),
+                ),
               ),
               Divider(
                 color: const Color.fromARGB(139, 143, 143, 143),
@@ -1536,7 +1536,6 @@ class _BoardState extends State<Board>
                   ),
                 );
               }(),
-
             ),
             Row(children: _getInputModeButtons(),),
             _boardInputZone(),
