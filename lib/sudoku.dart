@@ -2,6 +2,7 @@ import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/constraint.dart';
 import 'package:sudoku_notepad/hint.dart';
 import 'package:sudoku_notepad/hintType.dart';
+import 'package:sudoku_notepad/killerConstraint.dart';
 import 'package:sudoku_notepad/variant.dart';
 
 
@@ -138,24 +139,24 @@ class Sudoku
     return m;
   }
 
-  static List<bool> getPossibilities(List<Cell> board, Cell forThis)
+  static Set<int> getPossibilities(List<Cell> board, Cell forThis)
   {
-    List<bool> possible = [true,true,true,true,true,true,true,true,true];
+    Set<int> possible = {1,2,3,4,5,6,7,8,9};
     if (forThis.num != 0 )
     {
-      return possible.map((element) => (!element)).toList();
+      return {};
     }
     for (Cell cell in board)
     {
-      if (isSeen(forThis, cell) && cell.num!=0)
+      if (isSeen(forThis, cell))
       { 
-        possible[cell.num-1] = false;
+        possible.remove(cell.num);
       }
     }
     return possible;
   }
 
-  static List<Hint> _hiddenSingleHintSearch(List<List<List<bool>>> sector, HintType type)
+  static List<Hint> _hiddenSingleHintSearch(List<List<Set<int>>> sector, HintType type)
   {
     List<Hint> hints = [];
     Hint newHint;
@@ -166,9 +167,9 @@ class Sudoku
       for(int i=0; i<9; i++)
       {
         int iCount = 0;
-        for(List<bool> cell in subsec)
+        for(Set<int> cell in subsec)
         {
-          if(cell[i])iCount++;
+          if(cell.contains(i))iCount++;
         }
         timesAppeared.add(iCount);
       }
@@ -200,11 +201,10 @@ class Sudoku
   static List<Hint> getHints(List<Cell> board)
   {
     List<Hint> hints = [];
-    int trueCount;
 
-    List<List<List<bool>>> rows = [[],[],[],[],[],[],[],[],[]];
-    List<List<List<bool>>> cols = [[],[],[],[],[],[],[],[],[]];
-    List<List<List<bool>>> boxes = [[],[],[],[],[],[],[],[],[]];
+    List<List<Set<int>>> rows = [[],[],[],[],[],[],[],[],[]];
+    List<List<Set<int>>> cols = [[],[],[],[],[],[],[],[],[]];
+    List<List<Set<int>>> boxes = [[],[],[],[],[],[],[],[],[]];
 
     for (Cell cell in board)
     {
@@ -218,22 +218,16 @@ class Sudoku
       {
         if (!cell.possibleVals.contains(true))
         {
-        return [Hint(HintType.assumptionError, [cell.index], null)];
+          return [Hint(HintType.assumptionError, [cell.index], null)];
         }
-
-        trueCount = 0;
-        for (bool number in cell.possibleVals)
-        {
-          if(number) trueCount+=1;
-        }
-        if (trueCount==1)
+        if (cell.possibleVals.isEmpty)
         {
           hints.add(Hint(HintType.nakedSingle, [cell.index], null)); 
         }
       }
-      rows[cell.index~/9].add(cell.num==0?cell.possibleVals:[false,false,false,false,false,false,false,false,false]);
-      cols[cell.index%9].add(cell.num==0?cell.possibleVals:[false,false,false,false,false,false,false,false,false]);
-      boxes[cell.boxId].add(cell.num==0?cell.possibleVals:[false,false,false,false,false,false,false,false,false]);
+      rows[cell.index~/9].add(cell.num==0?cell.possibleVals:{});
+      cols[cell.index%9].add(cell.num==0?cell.possibleVals:{});
+      boxes[cell.boxId].add(cell.num==0?cell.possibleVals:{});
     }
     hints += _hiddenSingleHintSearch(rows, HintType.row);
     hints += _hiddenSingleHintSearch(cols, HintType.column);
@@ -250,13 +244,13 @@ class Sudoku
 
   static void _updatePossibleValsOnInput(Cell cell, List<Cell> board)
   {
-    cell.possibleVals = [false,false,false,false,false,false,false,false,false,];
+    cell.possibleVals = {};
     Set<int> updateUs = _getBoxMembers(cell.boxId, board).toSet();
     updateUs.addAll(_getColumnMembersFromIndex(cell.index));
     updateUs.addAll(_getRowMembersFromIndex(cell.index));
     for(int index in updateUs)
     {
-      board[index].possibleVals[cell.num-1] = false;
+      board[index].possibleVals.remove(cell.num);
     }
   }
 
@@ -292,7 +286,7 @@ class Sudoku
   {
     for(Cell cell in board)
     {
-      if(!cell.possibleVals.contains(true) && cell.num==0)
+      if(!cell.possibleVals.isNotEmpty && cell.num==0)
       {
         return true;
       }
@@ -303,15 +297,13 @@ class Sudoku
   static bool _fillNakedSingles(List<Cell> board)
   {
     bool change = false;
-    int onlyP;
     for(Cell cell in board)
     {
       if(cell.num==0)
       {
-        if(cell.possibleVals.where((p) => p==true).length==1)
+        if(cell.possibleVals.length==1)
         {
-          onlyP = cell.possibleVals.indexOf(true)+1;
-          cell.num = onlyP;
+          cell.num = cell.possibleVals.elementAt(0);
           change = true;
           _updatePossibleValsOnInput(cell, board);
         }
@@ -323,23 +315,24 @@ class Sudoku
   static bool _loopOverSectorsForHiddenSingle(Set<int> sector, List<Cell> board)
   {
     int occurrences;
-    Cell hiddenSingle;
+    Cell? hiddenSingle;
     bool changed = false;
 
-    for(int num=0; num<9; num++)
+    for(int num=1; num<10; num++)
     {
       occurrences=0;
       for(int i in sector)
       {
-        if(board[i].possibleVals[num])
+        if(board[i].possibleVals.contains(num))
         {
           occurrences++;
+          hiddenSingle = board[i];
         }
+        
       }
       if(occurrences==1)
       {
-        hiddenSingle = board[sector.where((index) => board[index].possibleVals[num]).toList()[0]];
-        hiddenSingle.num = num+1;
+        hiddenSingle!.num = num;
         _updatePossibleValsOnInput(hiddenSingle, board);
         changed = true;
       }
@@ -373,9 +366,9 @@ class Sudoku
     {
       for(int cell in set)
       {
-        if(board[cell].possibleVals[num-1])
+        if(board[cell].possibleVals.contains(num))
         {
-          board[cell].possibleVals[num-1] = false;
+          board[cell].possibleVals.remove(num);
           changed = true;
           print('deduction applied to cell $cell to remove $num as an option');
         }
@@ -402,7 +395,7 @@ class Sudoku
     {
       for(int num=1; num<=9; num++)
       {
-        Set<int> subset = setA.where((cell) => board[cell].possibleVals[num-1]==true).toSet();
+        Set<int> subset = setA.where((cell) => board[cell].possibleVals.contains(num)).toSet();
         for(Set<int> setB in [...boxes, ...rows, ...cols])
         {
           if(setB.containsAll(subset) && subset.isNotEmpty && setB != setA)
@@ -426,17 +419,10 @@ class Sudoku
     Set<int> seenGroupB;
     Set<int> newSeenGroup;
     Set<int> groupPossibleVals = {};
-    Set<int> cellBPossibleVals = {};
     Set<int> alreadyChecked={};
     for(int cell in group)
     {
-      for(final (num, exists) in board[cell].possibleVals.indexed)
-      {
-        if(exists)
-        {
-          groupPossibleVals.add(num+1);
-        }
-      }
+      groupPossibleVals.addAll(board[cell].possibleVals);
     }
     if(group.length == groupPossibleVals.length)
     {
@@ -467,15 +453,7 @@ class Sudoku
     for(int cellB in seenGroupA)
     {
       alreadyChecked.add(cellB);
-      cellBPossibleVals = {};
-      for(final (num, exists) in board[cellB].possibleVals.indexed)
-      {
-        if(exists)
-        {
-          cellBPossibleVals.add(num+1);
-        }
-      }
-      if(groupPossibleVals.intersection(cellBPossibleVals).isNotEmpty)
+      if(groupPossibleVals.intersection(board[cellB].possibleVals).isNotEmpty)
       {
         seenGroupB = {..._getRowMembersFromIndex(cellB), ..._getBoxMembers(board[cellB].boxId, board), ..._getColumnMembersFromIndex(cellB)}.where((index) => board[index].num==0).toSet();
         seenGroupB.remove(cellB);
@@ -494,7 +472,10 @@ class Sudoku
     {
       if(cell.num!=0)continue;
       Set<int> group = {cell.index}; 
-      Set<int> seenGroup = {..._getRowMembersFromIndex(cell.index), ..._getBoxMembers(cell.boxId, board).toSet(), ..._getColumnMembersFromIndex(cell.index)}.where((index) => board[index].num==0).toSet();
+      Set<int> seenGroup = {..._getRowMembersFromIndex(cell.index), 
+                            ..._getBoxMembers(cell.boxId, board).toSet(), 
+                            ..._getColumnMembersFromIndex(cell.index)
+      }.where((index) => board[index].num==0).toSet();
       seenGroup.remove(cell.index);
       changed = changed
               | _recursiveSearchForGroupExclusivity(group, seenGroup, board);
@@ -505,6 +486,7 @@ class Sudoku
   static bool _killerSolver(List<Cell> board, List<dynamic> variants)
   {
     bool changed = false;
+    List<KillerConstraint> cages = variants.where((dynamic c) => c.type==Variant.killer).toList() as List<KillerConstraint>;
     for(Constraint c in variants)
     {
       if(c.type==Variant.killer)
@@ -544,13 +526,11 @@ class Sudoku
     {
       if(cell.num==0)
       {
-        print(sum);
         print('not solved');
         print('error is $error');
         return SolveOutcome.noSolutionFound;
       }
     }
-    print(sum);
     return SolveOutcome.success;
   }
   // static bool _isInputValid(Cell cell, List<Cell> board)

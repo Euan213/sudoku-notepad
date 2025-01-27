@@ -14,9 +14,9 @@ class Cell {
   double rightMargin = 1.0;
 
   int num = 0;
-  List<bool> pencilCorner = [false, false, false, false, false, false, false, false, false,];
-  List<bool> pencilCenter = [false, false, false, false, false, false, false, false, false,];
-  List<bool> possibleVals = [false, false, false, false, false, false, false, false, false,];
+  Set<int> pencilCorner = {};
+  Set<int> pencilCenter = {};
+  Set<int> possibleVals = {};
   int _baseColourId = 0;
   Color colour = CellColours.baseColours[0];
   Color textColour = CellColours.fixedText;
@@ -63,11 +63,11 @@ class Cell {
 
   void setPencilCorner(int n)
   {
-      pencilCorner[n-1] == !pencilCorner[n-1];
+    pencilCorner.contains(n)? pencilCorner.remove(n) : pencilCorner.add(n);
   }
   void setPencilCenter(int n)
   {
-    pencilCenter[n-1] == !pencilCenter[n-1];
+    pencilCenter.contains(n)? pencilCenter.remove(n) : pencilCenter.add(n);
   }
 
   void changeHintStatus()

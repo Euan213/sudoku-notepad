@@ -1,10 +1,19 @@
 import 'package:sudoku_notepad/constraint.dart';
 import 'package:sudoku_notepad/sudoku.dart';
+import 'package:sudoku_notepad/variant.dart';
 
 class KillerConstraint extends Constraint
 {
   int sum;
-  KillerConstraint(super.type, super.appliesToIndexes, this.sum);
+  @override
+
+  KillerConstraint(super.appliesToIndexes, this.sum);
+
+  @override
+  Variant? get type
+  {
+    return Variant.killer;
+  }
 
   @override
   CheckSolOutcome? checkMe(List<int> nums) 

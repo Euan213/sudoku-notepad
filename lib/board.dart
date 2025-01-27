@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sudoku_notepad/cell.dart';
@@ -111,20 +110,14 @@ class _BoardState extends State<Board>
     for (Cell cell in board)
     {
       String centerStr='';
-      for (final (index, num) in cell.pencilCenter.indexed)
+      for (int num in cell.pencilCenter)
       {
-        if (num)
-        {
-          centerStr+='${index+1}';
-        }
+        centerStr+='$num';
       }
       String cornerStr='';
-      for (final (index, num) in cell.pencilCorner.indexed)
+      for (int num in cell.pencilCorner)
       {
-        if (num)
-        {
-          cornerStr+='${index+1}';
-        }
+        cornerStr+='$num';
       }
       cells.add('${cell.isFixed?1:0}.${cell.num}.$centerStr.$cornerStr.${cell.getColourId()}.${cell.boxId}');
     }
@@ -269,15 +262,12 @@ class _BoardState extends State<Board>
     setState(() {
       if (n == 0)
       {
-        for (int number=0; number <= 8; number++)
-        {
-          cell.pencilCorner[number] = false;
-        }
+        cell.pencilCorner={};
       }
       else 
       {
-        cell.pencilCorner[n-1] = !cell.pencilCorner[n-1];
-      }  
+        cell.setPencilCorner(n);
+      }
     });
   }
   
@@ -286,14 +276,11 @@ class _BoardState extends State<Board>
     setState(() {
       if (n == 0)
       {
-        for (int number=0; number <= 8; number++)
-        {
-          cell.pencilCenter[number] = false;
-        }
+        cell.pencilCenter={};
       }
       else 
       {
-        cell.pencilCenter[n-1] = !cell.pencilCenter[n-1];
+        cell.setPencilCenter(n);
       }
     });
   }
@@ -464,8 +451,10 @@ class _BoardState extends State<Board>
               cageTop = EdgeInsets.only(top: 4, left: 10, bottom: 4, right: 4,);
               children.add(Container(
                 alignment: Alignment.topLeft,
-                child: Text('${constraint.sum}',
-                  style: TextStyle(color: const Color.fromARGB(255, 65, 65, 65),),
+                margin: EdgeInsets.only(left: 3),
+                child: Text(
+                  '${constraint.sum}',
+                  style: TextStyle(color: const Color.fromARGB(255, 0, 0, 0),),
                 ),
               ));
             }
@@ -564,37 +553,45 @@ class _BoardState extends State<Board>
             ), 
           );
         }
-        else if(cell.pencilCenter.contains(true))
+        else if(cell.pencilCenter.isNotEmpty)
         {
           alignment = Alignment.center;
           String txtStr = '';
-          for (int i = 0; i <= 8; i++)
+          for (int i = 1; i <= 9; i++)
           {
-            if (cell.pencilCenter[i])
+            if (cell.pencilCenter.contains(i))
             {
-              txtStr += '${i+1}';
+              txtStr += '$i';
             }
           }
           child = FittedBox(
             fit: BoxFit.fitWidth,
-            child: Text(txtStr,),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: selected.isNotEmpty && cell.pencilCenter.contains(selected[0].num)? 
+                            CellColours.selectedHighlighter
+                            :const Color.fromARGB(0, 255, 255, 255),
+                borderRadius: BorderRadius.circular(3)
+              ),
+              child: Text(txtStr,),
+            ),
           );
         }
-        else if (cell.pencilCorner.contains(true)) //change to true
+        else if (cell.possibleVals.isNotEmpty) 
         {
           List<Alignment> alignments = const [Alignment.topLeft,    Alignment.topCenter,    Alignment.topRight,
                                               Alignment.centerLeft, Alignment.center,       Alignment.centerRight,
                                               Alignment.bottomLeft, Alignment.bottomCenter, Alignment.bottomRight,];
           alignment = Alignment.center;
           child = Stack(
-            children: [for (int i=0; i<=8; i++) Container(
-              alignment: alignments[i],
+            children: [for (int i=1; i<=9; i++) Container(
+              alignment: alignments[i-1],
               child: () {
-                if(cell.pencilCorner[i]) // change to pencilcorner
+                if(cell.possibleVals.contains(i)) 
                 {
                   return DecoratedBox(
                     decoration: BoxDecoration(
-                      color: selected.isNotEmpty && selected[0].num==i+1? 
+                      color: selected.isNotEmpty && selected[0].num==i? 
                             CellColours.selectedHighlighter
                             :const Color.fromARGB(0, 255, 255, 255),
                       borderRadius: BorderRadius.circular(3)
@@ -602,7 +599,7 @@ class _BoardState extends State<Board>
                     child: FittedBox(
                       fit: BoxFit.contain,
                       child: Text(
-                        ' ${i+1} ', 
+                        ' $i ', 
                         style: TextStyle(fontSize:12, color: Colors.black),
                       ),
                     ),
@@ -969,7 +966,7 @@ class _BoardState extends State<Board>
                       {
                         if(newCageSum!=null)
                         {
-                          constraints.insert(cages.length, KillerConstraint(Variant.killer, [], newCageSum!));
+                          constraints.insert(cages.length, KillerConstraint([], newCageSum!));
                           editingCageId = cages.length;
                         }                      
                       }else
@@ -1185,8 +1182,8 @@ class _BoardState extends State<Board>
           if (!cell.isFixed)
           {
             cell.num=0;
-            cell.pencilCorner = [false, false, false, false, false, false, false, false, false,];
-            cell.pencilCenter = [false, false, false, false, false, false, false, false, false,];
+            cell.pencilCorner = {};
+            cell.pencilCenter = {};
           }
           cell.updateBaseId(0);
           cell.updateTextColour();
@@ -1260,11 +1257,11 @@ class _BoardState extends State<Board>
         newCell.num = int.parse(cellData[1]);
         for (String num in centerVals)
         {
-          newCell.pencilCenter[int.parse(num)-1] = true;
+          newCell.pencilCenter.add(int.parse(num));
         }
         for (String num in cornerVals)
         {
-          newCell.pencilCorner[int.parse(num)-1] = true;
+          newCell.pencilCorner.add(int.parse(num));
         }
         newCell.updateBaseId(int.parse(cellData[4]));
         newCell.updateTextColour();
@@ -1293,7 +1290,7 @@ class _BoardState extends State<Board>
           {
             case Variant.killer:
               int sum = int.parse(groupingData[2]);
-              constraints.add(KillerConstraint(v, cells, sum));
+              constraints.add(KillerConstraint(cells, sum));
           }
         }catch (e) //skip entries that cant be read, prevents a crash on bad data
         { 
