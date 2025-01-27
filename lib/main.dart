@@ -51,7 +51,9 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>
           [
             Spacer(),
-            Image.asset('assets/icon.png'),
+            Center(
+              child: Image.asset('assets/Icon.png'),
+            ),
             Spacer(),
             ElevatedButton(
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => Board(-1, [], false, '', 'New Puzzle'))),
@@ -199,10 +201,12 @@ class _SavesPageState extends State<SavesPage>
                                         showDialog<String>(
                                           context: context,
                                           builder: (context) => AlertDialog(
+                                            backgroundColor: const Color.fromARGB(255, 199, 199, 199),
                                             title: Text('Delete ${boardData[3]}?'),
                                             content: Text('Are you absolutely sure you want to kill ${boardData[3]}? Theres no going back.'),
                                             actions: [
                                               ElevatedButton(
+                                                style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 212, 212, 212)),
                                                 onPressed: () => {
                                                   Navigator.pop(context, 'Killed'),
                                                   SaveLoad.deleteBoard(index).then((_) 
@@ -213,6 +217,7 @@ class _SavesPageState extends State<SavesPage>
                                                 child: Text('YES KILL IT!'),
                                               ),
                                               ElevatedButton(
+                                                style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 212, 212, 212)),
                                                 onPressed: () => Navigator.pop(context, 'Cancel'), 
                                                 child: Text('no.'),
                                               )

@@ -1,1 +1,0 @@
-enum SolveOutcome {success, impossible, noSolutionFound}

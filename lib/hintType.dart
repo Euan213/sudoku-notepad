@@ -1,1 +1,1 @@
-enum HintType{row, column, box, mistake, assumptionError, nakedSingle, hiddenSingle}
+enum HintType{row, column, box, mistake, assumptionError, nakedSingle, hiddenSingle, killer}

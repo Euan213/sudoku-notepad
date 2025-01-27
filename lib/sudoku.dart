@@ -1,8 +1,12 @@
-import 'package:flutter/rendering.dart';
 import 'package:sudoku_notepad/cell.dart';
+import 'package:sudoku_notepad/constraint.dart';
 import 'package:sudoku_notepad/hint.dart';
 import 'package:sudoku_notepad/hintType.dart';
-import 'package:sudoku_notepad/solveOutcome.dart';
+import 'package:sudoku_notepad/variant.dart';
+
+
+enum SolveOutcome {success, impossible, noSolutionFound}
+enum CheckSolOutcome {good, emptyCell, sudokuViolated, killerSumViolated, killerExclusivityViolated}
 
 class Sudoku
 {
@@ -181,6 +185,18 @@ class Sudoku
     return hints;
   }
 
+  static Cell? _conflictCheck (Cell cell, List<Cell> board)
+  {
+    for (Cell compareCell in board)
+    {
+      if (isSeen(cell, compareCell) && cell.num==compareCell.num && cell.num!=0)
+      {
+        return compareCell;
+      }
+    }
+    return null;
+  }
+
   static List<Hint> getHints(List<Cell> board)
   {
     List<Hint> hints = [];
@@ -192,13 +208,10 @@ class Sudoku
 
     for (Cell cell in board)
     {
-      for (Cell compareCell in board)
+      Cell? mistakeCell = _conflictCheck(cell, board);
+      if(mistakeCell!=null)
       {
-        if (isSeen(cell, compareCell) && cell.num==compareCell.num && cell.num!=0)
-        {
-          return [Hint(HintType.mistake, [cell.index, compareCell.index,], null)];
-        }
-        // -- hints that require 2 cells compared can go here
+        return [Hint(HintType.mistake, [cell.index, mistakeCell.index,], null)];
       }
 
       if (cell.num == 0)
@@ -245,6 +258,34 @@ class Sudoku
     {
       board[index].possibleVals[cell.num-1] = false;
     }
+  }
+
+  static (CheckSolOutcome, Set<Cell>) checkSolIsGood(List<Cell> board, List<dynamic> constraints)
+  {
+    CheckSolOutcome? outcome;
+    Cell? badCell;
+    for(Cell cell in board)
+    {
+      if(cell.num==0)
+      {
+        outcome = CheckSolOutcome.emptyCell;
+        return (outcome, {cell});
+      }
+      badCell = _conflictCheck(cell, board);
+      if(badCell!=null)
+      {
+        outcome = CheckSolOutcome.sudokuViolated;
+        return (outcome, {cell, badCell});
+      }
+    }
+    for(Constraint c in constraints)
+    {
+      outcome = c.checkMe(c.appliesToIndexes.map((int id) => board[id].num).toList());
+      if(outcome!=null){
+        return (outcome, c.appliesToIndexes.map((id) => board[id]).toSet());
+      }
+    }
+    return (CheckSolOutcome.good, {});
   }
 
   static bool _cellHasNoOptionsCheck(List<Cell> board)
@@ -457,6 +498,22 @@ class Sudoku
       seenGroup.remove(cell.index);
       changed = changed
               | _recursiveSearchForGroupExclusivity(group, seenGroup, board);
+    }
+    return changed;
+  }
+
+  static bool _killerSolver(List<Cell> board, List<dynamic> variants)
+  {
+    bool changed = false;
+    for(Constraint c in variants)
+    {
+      if(c.type==Variant.killer)
+      {
+        for(int id in c.appliesToIndexes)
+        {
+
+        }
+      }
     }
     return changed;
   }

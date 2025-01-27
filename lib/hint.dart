@@ -26,6 +26,8 @@ class Hint
         return 'take a look at what values can be entered into cell ${cellIds[0]}.';
       case HintType.hiddenSingle:
         return 'take a look at where each number can go in ${sector?.name} ${String.fromCharCode(sectorId!+65)}' ;
+      case HintType.killer:
+        return 'killer hint text' ;
       default:
         return 'There has been an error with this hint! Whoopsies!';
     }

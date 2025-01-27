@@ -5,23 +5,23 @@ class CellColours
   CellColours._();
 
   static List<Color> baseColours = [
-                         Color.fromARGB(255, 184, 251, 249),
-                         Colors.blue, 
-                         Colors.red, 
-                         Colors.cyan, 
-                         Colors.green, 
-                         Colors.pinkAccent, 
-                         Colors.purple, 
-                         Colors.brown, 
-                         Colors.orange, 
-                         Colors.grey];
+                         const Color.fromARGB(255, 199, 255, 253),
+                         const Color.fromARGB(255, 140, 203, 255), 
+                         const Color.fromARGB(255, 255, 157, 150), 
+                         const Color.fromARGB(255, 214, 255, 138), 
+                         const Color.fromARGB(255, 171, 255, 174), 
+                         const Color.fromARGB(255, 138, 255, 245), 
+                         const Color.fromARGB(255, 241, 158, 255), 
+                         const Color.fromARGB(255, 192, 149, 133), 
+                         const Color.fromARGB(255, 255, 207, 134), 
+                         const Color.fromARGB(255, 199, 199, 199)];
   static Color setMode = const Color.fromARGB(255, 137, 255, 133);
-  static Color sameNumText = const Color.fromARGB(255, 76, 173, 185);
+  static Color sameNumText = const Color.fromARGB(255, 255, 56, 195);
+  static Color error = Colors.red;
   static Color fixedText = const Color.fromARGB(255, 0, 124, 4);
-  static Color baseText = Colors.black;
+  static Color base = Colors.black;
   static Color seenHighlighter = const Color.fromARGB(66, 162, 161, 162);
   static Color selectedHighlighter = const Color.fromARGB(213, 255, 235, 59);
-  static Color baseMargin = Colors.black;
   static Color hintMargin = const Color.fromARGB(255, 15, 227, 255);
   static Color hinted = const Color.fromARGB(255, 255, 15, 223);
 
@@ -48,7 +48,7 @@ static Color getMarginColour({int? boxId})
     return baseColours[boxId];
   }
   else{
-    return baseMargin;
+    return base;
   }
 }
 
@@ -66,6 +66,6 @@ static Color getTextColour({bool? isSame, bool? isFixed, int? boxId})
     {
       if(isFixed)return fixedText;
     }
-    return baseText;
+    return base;
   }
 }

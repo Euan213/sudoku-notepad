@@ -710,12 +710,14 @@ class _BoardState extends State<Board>
               builder: (context, setAlertState)
               {
                 return AlertDialog(
+                  backgroundColor: const Color.fromARGB(255, 199, 199, 199),
                   title: Text('Hint!'),
                   content: Text(hints.isEmpty?'Couldnt find any hints!':
                                 hintIndex==-1?'You are about to look at some hints, are you sure you want to admit defeat?':
                                 hints[hintIndex].text),
                   actions: [
                     ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 212, 212, 212)),
                       onPressed: () => 
                         { 
                           Navigator.pop(context, 'CloseHints'),
@@ -724,6 +726,7 @@ class _BoardState extends State<Board>
                       child: Text(hintIndex==-1?'Keep Trying':'Ok')
                     ),
                     ElevatedButton( //next hint button
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 212, 212, 212)),
                       onPressed: () =>
                       {
                         if (hints.isEmpty)
@@ -1421,6 +1424,23 @@ class _BoardState extends State<Board>
                 endIndent: 15,
               ),
               Container(
+                padding: EdgeInsets.only(left:20, right: 20,),
+                child: ElevatedButton( //check button
+                  onPressed: () 
+                  {
+                    setState(() {
+                      print(Sudoku.checkSolIsGood(board, constraints));
+                    });
+                  },
+                  child: const Text('Check Solution'),
+                ),
+              ),
+              Divider(
+                color: const Color.fromARGB(139, 143, 143, 143),
+                indent: 15,
+                endIndent: 15,
+              ),
+              Container(
                 padding: EdgeInsets.only(right: 20, left: 20,),
                 child:Row(
                   children: [
@@ -1432,11 +1452,13 @@ class _BoardState extends State<Board>
                       onPressed: () => showDialog(
                         context: context, 
                         builder: (context) => AlertDialog(
+                          backgroundColor: const Color.fromARGB(255, 199, 199, 199),
                           title:  Text('Clear Played Input?'),
                           content:  
                             Text('Clears all inputed numbers, pencil marks, colours and undo history. This action cannot be undone.'),
                           actions: [
                             ElevatedButton( 
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 212, 212, 212)),
                               onPressed: () => 
                                 { 
                                   Navigator.pop(context, 'ClearBoard'),
@@ -1445,6 +1467,7 @@ class _BoardState extends State<Board>
                               child: Text('Yes')
                             ),
                             ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 212, 212, 212)),
                               onPressed: () => Navigator.pop(context, 'Cancel'), 
                               child: Text('No'))
                           ],
@@ -1468,11 +1491,13 @@ class _BoardState extends State<Board>
                       onPressed: () => showDialog(
                         context: context, 
                         builder: (context) => AlertDialog(
+                          backgroundColor: const Color.fromARGB(255, 199, 199, 199),
                           title:  Text('Clear EVERYTHING?'),
                           content:  
                             Text('This will empty the board. Everything will be gone, including fixed numbers and undo history.'),
                           actions: [
-                            ElevatedButton( 
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 212, 212, 212)),
                               onPressed: () => 
                                 { 
                                   Navigator.pop(context, 'ClearBoard'),
@@ -1481,6 +1506,7 @@ class _BoardState extends State<Board>
                               child: Text('Yes')
                             ),
                             ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 212, 212, 212)),
                               onPressed: () => Navigator.pop(context, 'Cancel'), 
                               child: Text('No'))
                           ],

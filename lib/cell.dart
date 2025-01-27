@@ -20,7 +20,7 @@ class Cell {
   int _baseColourId = 0;
   Color colour = CellColours.baseColours[0];
   Color textColour = CellColours.fixedText;
-  Color marginColour = CellColours.baseMargin;
+  Color marginColour = CellColours.base;
   bool onHint = false;
 
   bool selected = false;
@@ -110,7 +110,7 @@ class Cell {
     switch(type)
     {
       case MarginType.base:
-        marginColour = CellColours.baseMargin;
+        marginColour = CellColours.base;
 
       case MarginType.hint:
         marginColour = CellColours.hintMargin;
