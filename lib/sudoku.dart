@@ -216,7 +216,7 @@ class Sudoku
 
       if (cell.num == 0)
       {
-        if (!cell.possibleVals.contains(true))
+        if (cell.possibleVals.isEmpty)
         {
           return [Hint(HintType.assumptionError, [cell.index], null)];
         }
@@ -486,16 +486,31 @@ class Sudoku
   static bool _killerSolver(List<Cell> board, List<dynamic> variants)
   {
     bool changed = false;
+    List<Cell> remainingCells;
+    int remainingSum;
+    Set<int> optionsAvailableForCage;
+    Set<Set<int>> cageComboOptions;
     List<KillerConstraint> cages = variants.where((dynamic c) => c.type==Variant.killer).toList() as List<KillerConstraint>;
-    for(Constraint c in variants)
+    for(KillerConstraint c in cages)
     {
-      if(c.type==Variant.killer)
+      remainingSum = c.sum;
+      remainingCells = [];
+      cageComboOptions = {};
+      for(int index in c.appliesToIndexes)
       {
-        for(int id in c.appliesToIndexes)
+        if(board[index].num==0)
         {
-
+          remainingCells.add(board[index]);
+        }else
+        {
+          remainingSum-=board[index].num;
         }
       }
+      if(remainingCells.isEmpty)
+      {
+        continue;
+      }
+      
     }
     return changed;
   }
