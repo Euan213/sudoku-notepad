@@ -15,7 +15,7 @@ class CellColours
                          const Color.fromARGB(255, 192, 149, 133), 
                          const Color.fromARGB(255, 255, 207, 134), 
                          const Color.fromARGB(255, 199, 199, 199)];
-  static Color setMode = const Color.fromARGB(255, 137, 255, 133);
+  static Color setMode = const Color.fromARGB(255, 167, 255, 164);
   static Color sameNumText = const Color.fromARGB(255, 255, 56, 195);
   static Color error = Colors.red;
   static Color fixedText = const Color.fromARGB(255, 0, 124, 4);

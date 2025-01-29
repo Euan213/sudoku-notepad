@@ -32,7 +32,6 @@ class _BoardState extends State<Board>
 
   late String name;
   late int? boardId;
-  bool saving = false;
   var undoHistory = [];
   List<Cell> selected = [];
   ButtonMode buttonMode = ButtonMode.fixedNum;
@@ -424,7 +423,7 @@ class _BoardState extends State<Board>
           {
             if(constraints[editingCageId!]==constraint)
             {
-              dashColour = const Color.fromARGB(255, 255, 255, 255);
+              dashColour = const Color.fromARGB(255, 255, 15, 15);
             }
           }
           if(constraint.appliesToIndexes.contains(index))
@@ -946,10 +945,35 @@ class _BoardState extends State<Board>
             ),
           ),
           Container(
-            padding: EdgeInsets.only(left:20),
+            padding: EdgeInsets.only(right:20),
             child: Row(
               // spacing: 40,
               children: [
+                Container(
+                  padding: EdgeInsets.all(20),
+                  child: DropdownMenu(
+                    menuHeight: 300,
+                    menuStyle: MenuStyle(backgroundColor: WidgetStatePropertyAll<Color>(Colors.green)),
+                    width: 120,
+                    initialSelection: 0,
+                    requestFocusOnTap: false,
+                    label: Text('Sum'),
+                    onSelected: (sum)
+                    {
+                      setState(() {
+                        if (editingCageId==null)
+                        {
+                          newCageSum = sum;
+                        }else
+                        {
+                          constraints[editingCageId!].sum = sum;
+                        }   
+                      });
+                    },
+                    dropdownMenuEntries: killerSumSelection,
+                  ),
+                ),
+                Spacer(),
                 ElevatedButton( //new killer cage button
                   style: ElevatedButton.styleFrom(
                     backgroundColor: editingCageId==null?Colors.blueGrey:Colors.green,
@@ -973,31 +997,6 @@ class _BoardState extends State<Board>
                   child: Text(
                     editingCageId==null?'new cage':'done!',
                     style: TextStyle(color: Colors.black),
-                  ),
-                ),
-                Spacer(),
-                Container(
-                  padding: EdgeInsets.all(20),
-                  child: DropdownMenu(
-                    menuHeight: 300,
-                    menuStyle: MenuStyle(backgroundColor: WidgetStatePropertyAll<Color>(Colors.green)),
-                    width: 120,
-                    initialSelection: 0,
-                    requestFocusOnTap: false,
-                    label: Text('Sum'),
-                    onSelected: (sum)
-                    {
-                      setState(() {
-                        if (editingCageId==null)
-                        {
-                          newCageSum = sum;
-                        }else
-                        {
-                          constraints[editingCageId!].sum = sum;
-                        }   
-                      });
-                    },
-                    dropdownMenuEntries: killerSumSelection,
                   ),
                 ),
               ],
@@ -1203,15 +1202,10 @@ class _BoardState extends State<Board>
     
     DateTime now = DateTime.now();
     int difference = now.difference(lastSave).inSeconds;
-    int usingBId;
-    if(difference >= 5 && !saving)
+    if(difference >= 5)
     {
       lastSave = now;
-      saving = true;
-      // usingBId = boardId!;
       boardId = await SaveLoad.saveBoard(boardId!, meAsString());
-      // print(saving);
-      saving = false;
     }
   }
 

@@ -502,11 +502,12 @@ class Sudoku
         if(board[index].num==0)
         {
           remainingCells.add(board[index]);
+          optionsAvailableForCage.addAll(board[index].possibleVals);
         }else
         {
           remainingSum-=board[index].num;
         }
-        optionsAvailableForCage.addAll(board[index].possibleVals);
+        
       }
       if(remainingCells.isEmpty)
       {
