@@ -12,11 +12,16 @@ class Constraint{
 
   CheckSolOutcome? checkMe(List<int> nums)
   {
-    return null;
+    throw 'not implemented checkMe()';
   }
 
   String asString()
   {
-    return '';
+    throw 'not implemented asString()';
+  }
+
+  SolveOutcome solveControler(bool forSolve)
+  {
+    throw 'not implemented solveControler()';
   }
 }

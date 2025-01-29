@@ -507,7 +507,6 @@ class Sudoku
         {
           remainingSum-=board[index].num;
         }
-        
       }
       if(remainingCells.isEmpty)
       {
