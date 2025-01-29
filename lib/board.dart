@@ -1210,7 +1210,7 @@ class _BoardState extends State<Board>
       saving = true;
       // usingBId = boardId!;
       boardId = await SaveLoad.saveBoard(boardId!, meAsString());
-      print(saving);
+      // print(saving);
       saving = false;
     }
   }

@@ -54,30 +54,22 @@ class SaveLoad
   static Future<int> saveBoard(int index, String board) async
   {
     String content = await asString;
-    print(content);
     List<String> saves = content.split('\n');
     if (index == -1)
     {
-      print('index is -1');
-      saves.add('$board\n');
-      // writeToFile(FileMode.write, saves.where((board) => board!='').join('\n')+'\n');
-      // writeToFile(FileMode.append, '$board\n');
-      return saves.length;
+      writeToFile(FileMode.append, '$board\n');
+      return saves.length-1; //returns length-1 because the length of saves changes when the file is updated, despite being defined above this happening.
     }
-    else
+    try
     {
-      try
-      {
-        saves[index] = board;
-      }catch (e)
-      {
-        print(e);
-        return index;
-      }
-      writeToFile(FileMode.write, saves.where((board) => board!='').join('\n')+'\n');
-      print('index is $index');
+      saves[index] = board;
+    }catch (e)
+    {
+      print(e);
       return index;
     }
+    writeToFile(FileMode.write, '${saves.where((board) => board!='').join('\n')}\n');
+    return index;
   }
 
   static Future<void> deleteBoard(int index) async
