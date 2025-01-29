@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/constraint.dart';
 import 'package:sudoku_notepad/hint.dart';
@@ -517,7 +519,7 @@ class Sudoku
     return changed;
   }
 
-  static SolveOutcome logicalSolve(List<Cell> board, List<dynamic> varients)
+  static SolveOutcome logicalSolve(List<Cell> board, List<dynamic> variants)
   {
     sum=0;
     Cell cell;
@@ -528,15 +530,26 @@ class Sudoku
     bool tryAgain = true;
     bool error = false;
     int difficultyIndicator = 0;
+    HashMap<int, List<int>>? instructions;
     while(tryAgain && !error)
     {
+      print('in while');
       error = _cellHasNoOptionsCheck(board);
-      difficultyIndicator==0?tryAgain = _fillNakedSingles(board) 
-                                      | _fillHiddenSingles(board)
-      :difficultyIndicator==1? tryAgain = _setTheoryChecker(board)
-      :difficultyIndicator==2? tryAgain = _groupExclusivityChecker(board)
-      :{};
+      // difficultyIndicator==0?tryAgain = _fillNakedSingles(board) 
+      //                                 | _fillHiddenSingles(board)
+      // :difficultyIndicator==1? tryAgain = _setTheoryChecker(board)
+      // :difficultyIndicator==2? tryAgain = _groupExclusivityChecker(board)
+      // :{};
 
+      for(Constraint c in variants)
+      {
+        print('in constraints');
+        instructions = c.solveControler(true, board);
+        instructions?.forEach((limitedNum, cells) => (){
+          _tryUpdatePossibleValsOfSet(cells.toSet(), {limitedNum}, board);
+        });
+      }
+      tryAgain=false;//remove
       tryAgain? difficultyIndicator=0 : difficultyIndicator++;
     }
     for(cell in board)

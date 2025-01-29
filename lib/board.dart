@@ -571,7 +571,7 @@ class _BoardState extends State<Board>
             ),
           );
         }
-        else if (cell.pencilCorner.isNotEmpty) 
+        else if (cell.possibleVals.isNotEmpty) 
         {
           List<Alignment> alignments = const [Alignment.topLeft,    Alignment.topCenter,    Alignment.topRight,
                                               Alignment.centerLeft, Alignment.center,       Alignment.centerRight,
@@ -581,7 +581,7 @@ class _BoardState extends State<Board>
             children: [for (int i=1; i<=9; i++) Container(
               alignment: alignments[i-1],
               child: () {
-                if(cell.pencilCorner.contains(i)) 
+                if(cell.possibleVals.contains(i)) 
                 {
                   return DecoratedBox(
                     decoration: BoxDecoration(

@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:sudoku_notepad/constraint.dart';
 import 'package:sudoku_notepad/sudoku.dart';
 import 'package:sudoku_notepad/variant.dart';
@@ -60,18 +62,37 @@ class KillerConstraint extends Constraint
     return (remainingSum, cells);
   }
   @override
-  SolveOutcome solveControler(bool forSolve) {
-    // TODO: implement solveControler
-    return super.solveControler(forSolve);
+  HashMap<int, List<int>>? solveControler(bool forSolve, List<Cell> board) 
+  {
+    List<int>? updateUs;
+    Set<int>? impossibles;
+    HashMap<int, List<int>> instructions = HashMap();
+    if(forSolve)
+    {
+      (updateUs, impossibles) = singleRemainingCellCheck(board);
+      if(updateUs!=null)
+      {
+        for(int n in impossibles!)
+        {
+          if (instructions.containsKey(n))
+          {
+            instructions[n] = updateUs;
+          }else{
+            instructions[n]?.addAll(updateUs);
+          }
+        }
+      }
+    }
+    return instructions;
   }
 
   // logic Rules for solving and hints - all return a list of cells to update and a set of vals to remove as possibilities
-  (List<Cell>?, Set<int>?) singleRemainingCellCheck(List<Cell> board)
+  (List<int>?, Set<int>?) singleRemainingCellCheck(List<Cell> board)
   {
     final (remainingSum, remainingCells) = _getRemainingSumAndCells(board);
-    if(remainingCells.length == appliesToIndexes.length-1)
+    if(remainingCells.length == 1)
     {
-      return(remainingCells.map((i) => board[i]).toList(), {1,2,3,4,5,6,7,8,9}.difference({remainingSum}));
+      return(remainingCells, {1,2,3,4,5,6,7,8,9}.difference({remainingSum}));
     }
     return(null, null);
   }

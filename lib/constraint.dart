@@ -1,5 +1,8 @@
+import 'dart:collection';
+
 import 'package:sudoku_notepad/variant.dart';
 import 'package:sudoku_notepad/sudoku.dart';
+import 'package:sudoku_notepad/cell.dart';
 
 class Constraint{
   List<int> appliesToIndexes;
@@ -20,7 +23,7 @@ class Constraint{
     throw 'not implemented asString()';
   }
 
-  SolveOutcome solveControler(bool forSolve)
+  HashMap<int, List<int>>? solveControler(bool forSolve, List<Cell> board)
   {
     throw 'not implemented solveControler()';
   }
