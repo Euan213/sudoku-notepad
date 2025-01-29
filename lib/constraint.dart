@@ -23,7 +23,7 @@ class Constraint{
     throw 'not implemented asString()';
   }
 
-  HashMap<int, List<int>>? solveControler(bool forSolve, List<Cell> board)
+  HashMap<int, List<int>> solveControler(bool forSolve, List<Cell> board)
   {
     throw 'not implemented solveControler()';
   }

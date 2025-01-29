@@ -47,7 +47,6 @@ class KillerConstraint extends Constraint
   {
     List<int> cells = [];
     int remainingSum = sum;
-    final indexesSet = appliesToIndexes.toSet();
     for(int cell in appliesToIndexes)
     {
       if(board[cell].num == 0)
@@ -56,13 +55,13 @@ class KillerConstraint extends Constraint
       }
       else
       {
-        remainingSum =- board[cell].num;
+        remainingSum -= board[cell].num;
       }
     }
     return (remainingSum, cells);
   }
   @override
-  HashMap<int, List<int>>? solveControler(bool forSolve, List<Cell> board) 
+  HashMap<int, List<int>> solveControler(bool forSolve, List<Cell> board) 
   {
     List<int>? updateUs;
     Set<int>? impossibles;
@@ -76,9 +75,9 @@ class KillerConstraint extends Constraint
         {
           if (instructions.containsKey(n))
           {
-            instructions[n] = updateUs;
-          }else{
             instructions[n]?.addAll(updateUs);
+          }else{
+            instructions[n] = updateUs;
           }
         }
       }

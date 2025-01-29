@@ -530,7 +530,7 @@ class Sudoku
     bool tryAgain = true;
     bool error = false;
     int difficultyIndicator = 0;
-    HashMap<int, List<int>>? instructions;
+    HashMap<int, List<int>> instructions;
     while(tryAgain && !error)
     {
       print('in while');
@@ -545,8 +545,10 @@ class Sudoku
       {
         print('in constraints');
         instructions = c.solveControler(true, board);
-        instructions?.forEach((limitedNum, cells) => (){
-          _tryUpdatePossibleValsOfSet(cells.toSet(), {limitedNum}, board);
+        instructions.forEach((limitedNum, cells){
+          print(cells);
+          print(limitedNum);
+          tryAgain=_tryUpdatePossibleValsOfSet(cells.toSet(), {limitedNum}, board);
         });
       }
       tryAgain=false;//remove
