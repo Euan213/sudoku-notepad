@@ -494,6 +494,7 @@ class Sudoku
     for(KillerConstraint c in cages)
     {
       remainingSum = c.sum;
+      optionsAvailableForCage = {};
       remainingCells = [];
       cageComboOptions = {};
       for(int index in c.appliesToIndexes)
@@ -505,6 +506,7 @@ class Sudoku
         {
           remainingSum-=board[index].num;
         }
+        optionsAvailableForCage.addAll(board[index].possibleVals);
       }
       if(remainingCells.isEmpty)
       {
