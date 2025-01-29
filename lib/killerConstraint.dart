@@ -33,4 +33,10 @@ class KillerConstraint extends Constraint
     }
     return null;
   }
+
+  @override
+  String asString()
+  {
+    return 'killer,${appliesToIndexes.join('.')},$sum';
+  }
 }

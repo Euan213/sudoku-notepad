@@ -46,7 +46,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       body: Center(
         child: Column(
-          spacing: 20,
+          // spacing: 20,
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>
           [

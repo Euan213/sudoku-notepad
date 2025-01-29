@@ -54,18 +54,18 @@ class SaveLoad
   static Future<int> saveBoard(int index, String board) async
   {
     String content = await asString;
+    print(content);
     List<String> saves = content.split('\n');
     if (index == -1)
     {
-      writeToFile(FileMode.append, board + '\n');
+      print('index is -1');
+      saves.add('$board\n');
+      // writeToFile(FileMode.write, saves.where((board) => board!='').join('\n')+'\n');
+      // writeToFile(FileMode.append, '$board\n');
       return saves.length;
     }
     else
     {
-      if (saves.length == index)
-      {
-        return index;
-      }
       try
       {
         saves[index] = board;
@@ -74,8 +74,8 @@ class SaveLoad
         print(e);
         return index;
       }
-      
       writeToFile(FileMode.write, saves.where((board) => board!='').join('\n')+'\n');
+      print('index is $index');
       return index;
     }
   }

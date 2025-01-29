@@ -14,4 +14,9 @@ class Constraint{
   {
     return null;
   }
+
+  String asString()
+  {
+    return '';
+  }
 }

@@ -16,11 +16,11 @@ import 'package:dotted_line/dotted_line.dart';
 
 class Board extends StatefulWidget{
   final String name;
-  final int initBoardID;
+  final int initBoardId;
   final String board;
   final bool boardModePlay;
   final List<String> constraints;
-  const Board(this.initBoardID, this.constraints, this.boardModePlay, this.board, this.name, {super.key});
+  const Board(this.initBoardId, this.constraints, this.boardModePlay, this.board, this.name, {super.key});
 
   @override
   State<Board> createState() => _BoardState();
@@ -31,7 +31,8 @@ class _BoardState extends State<Board>
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
   late String name;
-  late int boardID;
+  late int? boardId;
+  bool saving = false;
   var undoHistory = [];
   List<Cell> selected = [];
   ButtonMode buttonMode = ButtonMode.fixedNum;
@@ -123,18 +124,12 @@ class _BoardState extends State<Board>
     }
     if(constraints.isNotEmpty)
     {
-      for(var constraint in constraints)
+      for(var c in constraints)
       {
-        switch(constraint.type) //the way a constraint is converted to a string is different for each variant type
-        {
-          case Variant.killer:
-            constraintsStr.add('killer,${constraint.appliesToIndexes.join('.')},${constraint.sum}');
-          default:
-            continue;
-        }
+        constraintsStr.add(c.asString());
       }
     }
-    return "${constraintsStr.join('¦')}|${boardModePlay?1:0}|${cells.join(',')}|$name";
+    return '${constraintsStr.join('¦')}|${boardModePlay?1:0}|${cells.join(',')}|$name';
   }
 
   void setSelectMode(ButtonMode m)
@@ -1205,12 +1200,18 @@ class _BoardState extends State<Board>
 
   void _doSave() async
   {
+    
     DateTime now = DateTime.now();
     int difference = now.difference(lastSave).inSeconds;
-    if(difference >= 5)
+    int usingBId;
+    if(difference >= 5 && !saving)
     {
       lastSave = now;
-      boardID = await SaveLoad.saveBoard(boardID, meAsString());
+      saving = true;
+      // usingBId = boardId!;
+      boardId = await SaveLoad.saveBoard(boardId!, meAsString());
+      print(saving);
+      saving = false;
     }
   }
 
@@ -1230,7 +1231,7 @@ class _BoardState extends State<Board>
     super.initState();
     List<String> boardCells = widget.board.split(',');
     boardModePlay = widget.boardModePlay;
-    boardID = widget.initBoardID;
+    boardId = widget.initBoardId;
     if (boardModePlay)
     {
      buttonMode = ButtonMode.number;
