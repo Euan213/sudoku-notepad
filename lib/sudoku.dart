@@ -379,11 +379,12 @@ class Sudoku
     return changed;
   }
 
-  static bool _setTheoryChecker(List<Cell> board)
+  static bool _setTheoryChecker(List<Cell> board, List<dynamic> variants)
   {
     List<Set<int>> boxes = [];
     List<Set<int>> rows = [];
     List<Set<int>> cols = [];
+    List<Set<int>> exclusiveConstraints = [];    
     bool changed = false;
     Set<int> setBWithoutSubset;
 
@@ -392,6 +393,10 @@ class Sudoku
       boxes.add(_getBoxMembers(i, board).toSet());
       rows.add(_getRowMembers(i).toSet());
       cols.add(_getColumnMembers(i).toSet());
+    }
+    for(dynamic v in variants)
+    {
+      if(v.isExclusive) exclusiveConstraints.add(v.appliesToIndexes.toSet());
     }
     for(Set<int> setA in [...boxes, ...rows, ...cols])
     {
@@ -485,40 +490,6 @@ class Sudoku
     return changed;
   }
 
-  static bool _killerSolver(List<Cell> board, List<dynamic> variants)
-  {
-    bool changed = false;
-    List<Cell> remainingCells;
-    int remainingSum;
-    Set<int> optionsAvailableForCage;
-    Set<Set<int>> cageComboOptions;
-    List<KillerConstraint> cages = variants.where((dynamic c) => c.type==Variant.killer).toList() as List<KillerConstraint>;
-    for(KillerConstraint c in cages)
-    {
-      remainingSum = c.sum;
-      optionsAvailableForCage = {};
-      remainingCells = [];
-      cageComboOptions = {};
-      for(int index in c.appliesToIndexes)
-      {
-        if(board[index].num==0)
-        {
-          remainingCells.add(board[index]);
-          optionsAvailableForCage.addAll(board[index].possibleVals);
-        }else
-        {
-          remainingSum-=board[index].num;
-        }
-      }
-      if(remainingCells.isEmpty)
-      {
-        continue;
-      }
-      
-    }
-    return changed;
-  }
-
   static SolveOutcome logicalSolve(List<Cell> board, List<dynamic> variants)
   {
     sum=0;
@@ -533,25 +504,22 @@ class Sudoku
     HashMap<int, List<int>> instructions;
     while(tryAgain && !error)
     {
-      print('in while');
+      tryAgain = false; //remove
       error = _cellHasNoOptionsCheck(board);
-      // difficultyIndicator==0?tryAgain = _fillNakedSingles(board) 
-      //                                 | _fillHiddenSingles(board)
-      // :difficultyIndicator==1? tryAgain = _setTheoryChecker(board)
-      // :difficultyIndicator==2? tryAgain = _groupExclusivityChecker(board)
-      // :{};
+      difficultyIndicator==0? tryAgain = _fillNakedSingles(board) 
+                                       | _fillHiddenSingles(board)
+      :difficultyIndicator==1? tryAgain = _setTheoryChecker(board, variants) | tryAgain
+      :difficultyIndicator==2? tryAgain = _groupExclusivityChecker(board) | tryAgain
+      :{};
 
       for(Constraint c in variants)
       {
-        print('in constraints');
         instructions = c.solveControler(true, board);
-        instructions.forEach((limitedNum, cells){
-          print(cells);
-          print(limitedNum);
-          tryAgain=_tryUpdatePossibleValsOfSet(cells.toSet(), {limitedNum}, board);
+        instructions.forEach((limitedNum, cells)
+        {
+          tryAgain = _tryUpdatePossibleValsOfSet(cells.toSet(), {limitedNum}, board) | tryAgain;
         });
       }
-      tryAgain=false;//remove
       tryAgain? difficultyIndicator=0 : difficultyIndicator++;
     }
     for(cell in board)

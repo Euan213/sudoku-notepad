@@ -8,6 +8,11 @@ class Constraint{
   List<int> appliesToIndexes;
   Constraint(this.appliesToIndexes);
 
+  bool get isExclusive
+  {
+    return false;
+  }
+
   Variant? get type
   {
     return null;
