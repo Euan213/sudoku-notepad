@@ -16,6 +16,7 @@ class CellColours
                          const Color.fromARGB(255, 255, 207, 134), 
                          const Color.fromARGB(255, 199, 199, 199)];
   static Color setMode = const Color.fromARGB(255, 167, 255, 164);
+  static Color setJigsaw = const Color.fromARGB(255, 39, 70, 38);
   static Color sameNumText = const Color.fromARGB(255, 255, 56, 195);
   static Color error = Colors.red;
   static Color fixedText = const Color.fromARGB(255, 0, 124, 4);
@@ -25,9 +26,10 @@ class CellColours
   static Color hintMargin = const Color.fromARGB(255, 15, 227, 255);
   static Color hinted = const Color.fromARGB(255, 255, 15, 223);
 
-static Color getNewColour({int baseId=0, bool selected=false, bool seen=false, bool isSetMode=false, bool hinting=false})
+static Color getNewColour({int baseId=0, bool selected=false, bool seen=false, bool isSetMode=false, bool hinting=false, bool settingJigsaw=false})
   {
-    Color newColour = isSetMode? setMode:
+    Color newColour = settingJigsaw? setJigsaw:
+                      isSetMode? setMode:
                       hinting? hinted:
                       baseColours[baseId];
     if (selected)

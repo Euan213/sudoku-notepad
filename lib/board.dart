@@ -488,7 +488,8 @@ class _BoardState extends State<Board>
     cell.getColour(
       selected: cell.selected, 
       setMode: !boardModePlay, 
-      isSeen: selected.isEmpty? false:Sudoku.isSeen(selected[0], cell)
+      isSeen: selected.isEmpty? false:Sudoku.isSeen(selected[0], cell),
+      settingJigsaw: buttonMode==ButtonMode.setJigsaw? true : false,
     );
     if(cell.onHint && !hinting)
     {
@@ -678,6 +679,23 @@ class _BoardState extends State<Board>
       ));
     }
     return inputModeButtons;
+  }
+
+  Widget _inputModeIcon()
+  {
+    return SizedBox(
+      height: 40,
+      width: 40,
+      child: Container(
+        padding: EdgeInsets.only(right: 10),
+        child:  buttonMode==ButtonMode.number?        Image(image: AssetImage('assets/NumberIndicator.png')):
+                buttonMode==ButtonMode.fixedNum?      Image(image: AssetImage('assets/NumberIndicator.png')):
+                buttonMode==ButtonMode.pencilCenter?  Image(image: AssetImage('assets/PencilCenterIndicator.png')):
+                buttonMode==ButtonMode.pencilCorner?  Image(image: AssetImage('assets/PencilCornerIndicator.png')):
+                buttonMode==ButtonMode.colour?        Icon(Icons.color_lens, size: 35):
+                                                      Spacer(),
+      ),
+    );
   }
 
   Widget hintButton()
@@ -1567,7 +1585,7 @@ class _BoardState extends State<Board>
                 );
               }(),
             ),
-            Row(children: _getInputModeButtons(),),
+            Row(children: [..._getInputModeButtons(), Spacer(), _inputModeIcon()],),
             _boardInputZone(),
           ],
         ),

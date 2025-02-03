@@ -90,9 +90,10 @@ class Cell {
 
   void getColour({required bool setMode,
                   required bool isSeen,
-                  required bool selected})
+                  required bool selected,
+                  bool settingJigsaw=false})
   {
-    colour = CellColours.getNewColour(baseId:_baseColourId, isSetMode:setMode, seen:isSeen, selected:selected, hinting: onHint);
+    colour = CellColours.getNewColour(baseId:_baseColourId, isSetMode:setMode, seen:isSeen, selected:selected, hinting: onHint, settingJigsaw: settingJigsaw);
   }
 
     void updateBaseId(int newId)
