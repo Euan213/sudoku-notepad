@@ -1023,6 +1023,7 @@ class _BoardState extends State<Board>
       case ButtonMode.setKiller:
         zone = _killerInputZone();
       default:
+        List<int> counts = _countNumbers();
         zone = Column(
           children: [
             GridView.builder(
@@ -1037,7 +1038,7 @@ class _BoardState extends State<Board>
               ),
               itemBuilder:(context, number)
               {
-                return _zeroToNineButton(number);
+                return _zeroToNineButton(number, counts[number]);
               }
             ),
             boardModePlay? Container(
@@ -1062,11 +1063,22 @@ class _BoardState extends State<Board>
     return zone;
   }
 
-  Widget _zeroToNineButton(int number)
+  List<int> _countNumbers()
+  {
+    List<int> nums = [0,0,0,0,0,0,0,0,0,0];
+    for(Cell c in board)
+    {
+      nums[c.num]++;
+    }
+    return nums;
+  }
+  
+  Widget _zeroToNineButton(int number, int count)
   {
     String textVal = "$number";
-
-    Color colour = const Color.fromARGB(255, 190, 190, 190);
+    Color colour = count<9 || number==0?const Color.fromARGB(255, 190, 190, 190)
+                                       :const Color.fromARGB(255, 103, 103, 136);
+    Color textColour = count<10? Colors.black : const Color.fromARGB(255, 128, 34, 27);
     TextStyle textStyle;
     VoidCallback onPressFunction;
     Widget child;
@@ -1082,7 +1094,7 @@ class _BoardState extends State<Board>
             setNumber(number, selected[0], false),
           }
         };
-        textStyle = TextStyle(color: Colors.black, fontSize: 40);//DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4);
+        textStyle = TextStyle(color: textColour, fontSize: 40);//DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4);
         child = Text(textVal, style: textStyle);
       case ButtonMode.fixedNum:
         onPressFunction =()=> 
@@ -1119,10 +1131,10 @@ class _BoardState extends State<Board>
             setPencilCenter(number, selected[0]),
           }
         };
-        textStyle = TextStyle(fontSize: 20, color: Colors.black,);
+        textStyle = TextStyle(fontSize: 20, color: textColour,);
         child = Text(textVal, style: textStyle);
       case ButtonMode.pencilCorner:
-        textStyle = TextStyle(color: Colors.black);
+        textStyle = TextStyle(color: textColour);
         onPressFunction =()=> 
         {
           if(selected.isNotEmpty)
@@ -1132,7 +1144,7 @@ class _BoardState extends State<Board>
             setPencilCorner(number, selected[0]),
           }
         };
-        child = Text(textVal, style: textStyle); //TODO - make pretty, text icons should appear at correct corner of buttons
+        child = Text(textVal, style: textStyle);
       default:
         throw 'unimplemented case for boardMode value'; 
     }
@@ -1150,8 +1162,8 @@ class _BoardState extends State<Board>
             'Clear',
             textAlign: TextAlign.center,
             textScaler: TextScaler.linear(2),
-          )
-        )
+          ),
+        ),
       );
     }
 
