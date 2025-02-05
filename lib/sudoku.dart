@@ -4,8 +4,6 @@ import 'package:sudoku_notepad/cell.dart';
 import 'package:sudoku_notepad/constraint.dart';
 import 'package:sudoku_notepad/hint.dart';
 import 'package:sudoku_notepad/hintType.dart';
-import 'package:sudoku_notepad/killerConstraint.dart';
-import 'package:sudoku_notepad/variant.dart';
 
 
 enum SolveOutcome {success, impossible, noSolutionFound}
@@ -141,6 +139,16 @@ class Sudoku
     return m;
   }
 
+  static Set<int> _getSeen(int index, List<Cell> board)
+  {
+    Set<int> seen = {};
+    seen.addAll(_getRowMembersFromIndex(index));
+    seen.addAll(_getColumnMembersFromIndex(index));
+    seen.addAll(_getBoxMembers(board[index].boxId, board));
+
+    return seen;
+  }
+
   static Set<int> getPossibilities(List<Cell> board, Cell forThis)
   {
     Set<int> possible = {1,2,3,4,5,6,7,8,9};
@@ -247,9 +255,7 @@ class Sudoku
   static void _updatePossibleValsOnInput(Cell cell, List<Cell> board)
   {
     cell.possibleVals = {};
-    Set<int> updateUs = _getBoxMembers(cell.boxId, board).toSet();
-    updateUs.addAll(_getColumnMembersFromIndex(cell.index));
-    updateUs.addAll(_getRowMembersFromIndex(cell.index));
+    Set<int> updateUs = _getSeen(cell.index, board);
     for(int index in updateUs)
     {
       board[index].possibleVals.remove(cell.num);
@@ -306,6 +312,7 @@ class Sudoku
         if(cell.possibleVals.length==1)
         {
           cell.num = cell.possibleVals.elementAt(0);
+          cell.possibleVals = {};
           change = true;
           _updatePossibleValsOnInput(cell, board);
         }
@@ -335,6 +342,7 @@ class Sudoku
       if(occurrences==1)
       {
         hiddenSingle!.num = num;
+        hiddenSingle.possibleVals = {};
         _updatePossibleValsOnInput(hiddenSingle, board);
         changed = true;
       }
@@ -355,8 +363,7 @@ class Sudoku
       col = _getColumnMembersFromIndex(sectorId);
       changed = _loopOverSectorsForHiddenSingle(row, board) 
               | _loopOverSectorsForHiddenSingle(col, board) 
-              | _loopOverSectorsForHiddenSingle(box.toSet(), board)
-              | changed;
+              | _loopOverSectorsForHiddenSingle(box.toSet(), board);
     }
     return changed;
   }
@@ -490,6 +497,55 @@ class Sudoku
     return changed;
   }
 
+  static bool _yWingChecker(List<Cell> board)
+  {
+    print("ywing");
+    bool changed = false;
+    Set<int> cVals;
+    Set<int> aSeen;
+    Set<int> bSeen;
+    Set<int> seenIntersectAB;
+    Set<int> nums;
+    bool setCompare;
+    for(Cell a in board)
+    {
+      if(a.possibleVals.length != 2)
+      {
+        continue;
+      }
+      for(Cell b in board)
+      {
+        if(!isSeen(a, b))
+        {
+          cVals = a.possibleVals.difference(b.possibleVals).union(b.possibleVals.difference(a.possibleVals));
+          if(a.index==9)print('$cVals cvals');
+          if(b.possibleVals.length==2 && cVals.length==2)
+          {
+            aSeen = _getSeen(a.index, board);
+            bSeen = _getSeen(b.index, board);
+            seenIntersectAB = aSeen.intersection(bSeen);
+            for(int c in seenIntersectAB)
+            {
+              if(board[c].possibleVals.containsAll(cVals) && cVals.containsAll(board[c].possibleVals))
+              {
+                print({a.index, b.index, c});
+                // sum++;
+                nums = a.possibleVals.union(b.possibleVals).difference(board[c].possibleVals);
+                print({a.possibleVals, b.possibleVals});
+                print(nums);
+                // return true;
+                
+                _tryUpdatePossibleValsOfSet(seenIntersectAB, nums, board);
+                changed = true;
+              }
+            }
+          }
+        }
+      }
+    }
+    return changed;
+  }
+
   static SolveOutcome logicalSolve(List<Cell> board, List<dynamic> variants)
   {
     sum=0;
@@ -500,18 +556,21 @@ class Sudoku
     }
     bool tryAgain = true;
     bool error = false;
-    int difficultyIndicator = 0;
     HashMap<int, List<int>> instructions;
     while(tryAgain && !error)
     {
-      tryAgain = false; //remove
+      if(sum == 1)break;
       error = _cellHasNoOptionsCheck(board);
-      difficultyIndicator==0? tryAgain = _fillNakedSingles(board) 
-                                       | _fillHiddenSingles(board)
-      :difficultyIndicator==1? tryAgain = _setTheoryChecker(board, variants) | tryAgain
-      :difficultyIndicator==2? tryAgain = _groupExclusivityChecker(board) | tryAgain
-      :{};
-
+      tryAgain = _fillNakedSingles(board);
+      if(tryAgain) continue;
+      tryAgain = _fillHiddenSingles(board);
+      if(tryAgain) continue;
+      tryAgain = _setTheoryChecker(board, variants);
+      if(tryAgain) continue;
+      tryAgain = _yWingChecker(board);
+      if(tryAgain) continue;
+      tryAgain = _groupExclusivityChecker(board);
+      if(tryAgain) continue;
       for(Constraint c in variants)
       {
         instructions = c.solveControler(true, board);
@@ -520,15 +579,21 @@ class Sudoku
           tryAgain = _tryUpdatePossibleValsOfSet(cells.toSet(), {limitedNum}, board) | tryAgain;
         });
       }
-      tryAgain? difficultyIndicator=0 : difficultyIndicator++;
     }
+    final solutionOutcome = checkSolIsGood(board, variants);
+    print('error is $error');
+    print(solutionOutcome.$1);
+    if (solutionOutcome.$1==CheckSolOutcome.good)
+    {
+      return SolveOutcome.success;
+    }
+
     for(cell in board)
     {
       if(cell.num==0)
       {
-        print('not solved');
-        print('error is $error');
-        return SolveOutcome.noSolutionFound;
+        cell.pencilCenter = {};
+        cell.pencilCorner = cell.possibleVals;
       }
     }
     return SolveOutcome.success;

@@ -36,6 +36,7 @@ class _BoardState extends State<Board>
   List<Cell> selected = [];
   ButtonMode buttonMode = ButtonMode.fixedNum;
   ButtonMode selectMode = ButtonMode.number;
+  bool magicPencilMarks = false;
   DateTime lastSave = DateTime.now();
 
   bool hinting = false;
@@ -303,18 +304,14 @@ class _BoardState extends State<Board>
           case Move.colour:
             setColour(move[2], board[move[1]]);
           case Move.centerZero:
-            int number = 1;
-            for(bool needsUndone in move[2])
+            for(int needsUndone in move[2])
             {
-              if(needsUndone)setPencilCenter(number, board[move[1]]);
-              number += 1;
+              setPencilCenter(needsUndone, board[move[1]]);
             }
           case Move.cornerZero:
-            int number = 1;
-            for(bool needsUndone in move[2])
+            for(int needsUndone in move[2])
             {
-              if(needsUndone)setPencilCorner(number, board[move[1]]);
-              number += 1;
+              setPencilCorner(needsUndone, board[move[1]]);
             }
         }
       }
@@ -1422,6 +1419,24 @@ class _BoardState extends State<Board>
                   onPressed: () => boardModePlay? boardSetMode():boardPlayMode(), 
                   child: Text('Switch Between Play and Set mode')
                 ),
+              ),
+              Divider(
+                color: const Color.fromARGB(139, 143, 143, 143),
+                indent: 15,
+                endIndent: 15,
+              ),
+              Row(                            // AUTO REMOVE PENCIL MARKS
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Magic Pencil Marks'),
+                  Checkbox(value: magicPencilMarks, 
+                    onChanged: (bool? val){
+                      setState(() {
+                        magicPencilMarks = val!;
+                      });
+                    }
+                  ),
+                ],
               ),
               Divider(
                 color: const Color.fromARGB(139, 143, 143, 143),
