@@ -5,7 +5,6 @@ import 'package:sudoku_notepad/buttonMode.dart';
 import 'package:sudoku_notepad/constraint.dart';
 import 'package:sudoku_notepad/killerConstraint.dart';
 import 'package:sudoku_notepad/main.dart';
-import 'package:sudoku_notepad/move.dart';
 import 'package:sudoku_notepad/saveLoad.dart';
 import 'package:sudoku_notepad/sudoku.dart';
 import 'package:sudoku_notepad/cellColours.dart';
@@ -13,6 +12,7 @@ import 'package:sudoku_notepad/hint.dart';
 import 'package:sudoku_notepad/variant.dart';
 import 'package:dotted_line/dotted_line.dart';
 
+enum Move {number, magicPencil, pencilCenter, centerZero, pencilCorner, cornerZero, colour}
 
 class Board extends StatefulWidget{
   final String name;
@@ -217,6 +217,32 @@ class _BoardState extends State<Board>
     selected = [];
   }
   
+  List<List<int>> magicPencil(Cell cell, newNum)
+  {
+    print('mamgic!');
+    List<int> updateUs = Sudoku.getSeen(cell.index, board).toList();
+    List<int> center = [];
+    List<int> corner = [];
+    Cell updateCell;
+    for(int index in updateUs)
+    {
+      updateCell = board[index];
+      if(updateCell.pencilCenter.contains(newNum))
+      {
+        print('$index index');
+        updateCell.pencilCenter.remove(newNum);
+        center.add(index);
+      }
+      if(updateCell.pencilCorner.contains(newNum))
+      {
+        updateCell.pencilCorner.remove(newNum);
+        corner.add(index);
+      }
+    }
+    print([center, corner]);
+    return [center, corner];
+  }
+
   void setNumber(int n, Cell cell, bool fixed)
   {
     setState(()
@@ -231,7 +257,7 @@ class _BoardState extends State<Board>
           }
           else
           {
-          cell.num = n;
+            cell.num = n;
           } 
         }
       }
@@ -297,6 +323,20 @@ class _BoardState extends State<Board>
         {
           case Move.number:
             setNumber(move[2], board[move[1]], false);
+          case Move.magicPencil:
+          {
+            magicPencilMarks = false;
+            setNumber(move[2], board[move[1]], false);
+            for(int index in move[3][0])
+            {
+              board[index].pencilCenter.add(move[4]);
+            }
+            for(int index in move[3][1])
+            {
+              board[index].pencilCorner.add(move[4]);
+            }
+            magicPencilMarks = true;
+          }
           case Move.pencilCenter:
             setPencilCenter(move[2], board[move[1]]);
           case Move.pencilCorner:
@@ -304,15 +344,23 @@ class _BoardState extends State<Board>
           case Move.colour:
             setColour(move[2], board[move[1]]);
           case Move.centerZero:
+          {
             for(int needsUndone in move[2])
             {
               setPencilCenter(needsUndone, board[move[1]]);
             }
+          }
           case Move.cornerZero:
+          {
             for(int needsUndone in move[2])
             {
               setPencilCorner(needsUndone, board[move[1]]);
             }
+          }
+          default:
+          {
+            throw 'you have not implemented a move type for undo';
+          }
         }
       }
     });
@@ -1105,11 +1153,13 @@ class _BoardState extends State<Board>
         {
           if(selected.isNotEmpty)
           {
-            undoHistory.add([Move.number, selected[0].index, selected[0].num]),
+            magicPencilMarks && number!=0?
+               undoHistory.add([Move.magicPencil, selected[0].index, selected[0].num, magicPencil(selected[0], number), number]) // [move type, cell changed, old value, cells updated, value removed]
+              :undoHistory.add([Move.number, selected[0].index, selected[0].num]),
             setNumber(number, selected[0], false),
           }
         };
-        textStyle = TextStyle(color: textColour, fontSize: 40);//DefaultTextStyle.of(context).style.apply(fontSizeFactor: 4);
+        textStyle = TextStyle(color: textColour, fontSize: 40);
         child = Text(textVal, style: textStyle);
       case ButtonMode.fixedNum:
         onPressFunction =()=> 

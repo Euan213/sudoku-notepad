@@ -139,7 +139,7 @@ class Sudoku
     return m;
   }
 
-  static Set<int> _getSeen(int index, List<Cell> board)
+  static Set<int> getSeen(int index, List<Cell> board)
   {
     Set<int> seen = {};
     seen.addAll(_getRowMembersFromIndex(index));
@@ -255,7 +255,7 @@ class Sudoku
   static void _updatePossibleValsOnInput(Cell cell, List<Cell> board)
   {
     cell.possibleVals = {};
-    Set<int> updateUs = _getSeen(cell.index, board);
+    Set<int> updateUs = getSeen(cell.index, board);
     for(int index in updateUs)
     {
       board[index].possibleVals.remove(cell.num);
@@ -521,8 +521,8 @@ class Sudoku
           if(a.index==9)print('$cVals cvals');
           if(b.possibleVals.length==2 && cVals.length==2)
           {
-            aSeen = _getSeen(a.index, board);
-            bSeen = _getSeen(b.index, board);
+            aSeen = getSeen(a.index, board);
+            bSeen = getSeen(b.index, board);
             seenIntersectAB = aSeen.intersection(bSeen);
             for(int c in seenIntersectAB)
             {
