@@ -219,7 +219,6 @@ class _BoardState extends State<Board>
   
   List<List<int>> magicPencil(Cell cell, newNum)
   {
-    print('mamgic!');
     List<int> updateUs = Sudoku.getSeen(cell.index, board).toList();
     List<int> center = [];
     List<int> corner = [];
@@ -229,7 +228,6 @@ class _BoardState extends State<Board>
       updateCell = board[index];
       if(updateCell.pencilCenter.contains(newNum))
       {
-        print('$index index');
         updateCell.pencilCenter.remove(newNum);
         center.add(index);
       }
@@ -239,7 +237,6 @@ class _BoardState extends State<Board>
         corner.add(index);
       }
     }
-    print([center, corner]);
     return [center, corner];
   }
 
