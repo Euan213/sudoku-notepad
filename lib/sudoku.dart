@@ -166,6 +166,19 @@ class Sudoku
     return possible;
   }
 
+  static List<int> _getPlacesForN(List<Cell> cellsToCheck, int n)
+  {
+    List<int> places=[];
+    for(Cell c in cellsToCheck)
+    {
+      if (c.possibleVals.contains(n))
+      {
+        places.add(c.index);
+      }
+    }
+    return places;
+  }
+
   static List<Hint> _hiddenSingleHintSearch(List<List<Set<int>>> sector, HintType type)
   {
     List<Hint> hints = [];
@@ -546,6 +559,80 @@ class Sudoku
     return changed;
   }
 
+  static bool _xWingChecker(List<List<int>> mainList, List<List<int>> crossingList, bool rowMain, List<Cell> board)
+  {
+    bool changed = false;
+    
+    List<int> placesForN;
+    List<int> secondPlacesForN;
+
+    int nextSectorIndex;
+    List<int> nextSector;
+
+    Set<int> nCrossPositions;
+    Set<int> secondNCrossPositions;
+
+    List<int> updateUs = [];
+    Set<int> updateSet;
+
+    for(final (sectorIndex, main) in mainList.indexed)
+    {
+      for(int n=1; n<10; n++)
+      {
+        nextSectorIndex = sectorIndex + 1;
+        placesForN = _getPlacesForN(main.map((element) => board[element]).toList(), n);
+        nCrossPositions = placesForN.map((element) => 
+          rowMain? element%9 : element~/9
+        ).toSet();
+        if(placesForN.length==2)
+        {
+          for(nextSectorIndex; nextSectorIndex<9; nextSectorIndex++)
+          {
+            updateUs = [];
+            nextSector = mainList[nextSectorIndex];
+            secondPlacesForN = _getPlacesForN(nextSector.map((element) => board[element]).toList(), n);
+            secondNCrossPositions = secondPlacesForN.map((element) => 
+              rowMain? element%9 : element~/9
+            ).toSet();
+            if(secondPlacesForN.length==2 && nCrossPositions.containsAll(secondNCrossPositions))
+            {
+              updateUs = [];
+              for(int crossId in nCrossPositions)
+              {
+                updateUs.addAll(
+                  rowMain? _getColumnMembers(crossId)
+                  : _getRowMembers(crossId)
+                );
+              }
+              updateSet = updateUs.toSet();
+              updateSet = updateSet.difference(placesForN.toSet()).difference(secondPlacesForN.toSet());
+              changed = _tryUpdatePossibleValsOfSet(updateSet, {n}, board) | changed;
+            }
+          }
+        }
+      }
+    }
+
+    return changed;
+  }
+
+  static bool _xWingControler(List<Cell> board)
+  {
+    bool changed = false;
+    List<List<int>> rows = [];
+    List<List<int>> cols = [];
+
+    for(int id=0; id<9; id++)
+    {
+      rows.add(_getRowMembers(id));
+      cols.add(_getColumnMembers(id));
+    }
+    changed = _xWingChecker(rows, cols, true, board)
+            // | _xWingChecker(cols, rows, false, board)
+            | changed;
+    return changed;
+  }
+
   static SolveOutcome logicalSolve(List<Cell> board, List<dynamic> variants)
   {
     sum=0;
@@ -570,6 +657,8 @@ class Sudoku
       tryAgain = _yWingChecker(board);
       if(tryAgain) continue;
       tryAgain = _groupExclusivityChecker(board);
+      if(tryAgain) continue;
+      tryAgain = _xWingControler(board);
       if(tryAgain) continue;
       for(Constraint c in variants)
       {
