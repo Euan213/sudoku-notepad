@@ -1475,8 +1475,13 @@ class _BoardState extends State<Board>
               Row(                            // AUTO REMOVE PENCIL MARKS
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Magic Pencil Marks'),
-                  Checkbox(value: magicPencilMarks, 
+                  Text(
+                    'Magic Pencil Marks',
+                    style: TextStyle(color: Colors.grey) 
+                  ),
+                  Checkbox(
+                    value: magicPencilMarks, 
+                    activeColor: Colors.grey,
                     onChanged: (bool? val){
                       setState(() {
                         magicPencilMarks = val!;

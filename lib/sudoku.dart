@@ -512,14 +512,12 @@ class Sudoku
 
   static bool _yWingChecker(List<Cell> board)
   {
-    print("ywing");
     bool changed = false;
     Set<int> cVals;
     Set<int> aSeen;
     Set<int> bSeen;
     Set<int> seenIntersectAB;
     Set<int> nums;
-    bool setCompare;
     for(Cell a in board)
     {
       if(a.possibleVals.length != 2)
@@ -531,7 +529,6 @@ class Sudoku
         if(!isSeen(a, b))
         {
           cVals = a.possibleVals.difference(b.possibleVals).union(b.possibleVals.difference(a.possibleVals));
-          if(a.index==9)print('$cVals cvals');
           if(b.possibleVals.length==2 && cVals.length==2)
           {
             aSeen = getSeen(a.index, board);
@@ -541,12 +538,7 @@ class Sudoku
             {
               if(board[c].possibleVals.containsAll(cVals) && cVals.containsAll(board[c].possibleVals))
               {
-                print({a.index, b.index, c});
-                // sum++;
                 nums = a.possibleVals.union(b.possibleVals).difference(board[c].possibleVals);
-                print({a.possibleVals, b.possibleVals});
-                print(nums);
-                // return true;
                 
                 _tryUpdatePossibleValsOfSet(seenIntersectAB, nums, board);
                 changed = true;
