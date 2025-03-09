@@ -139,6 +139,53 @@ class Sudoku
     return m;
   }
 
+  static int getClassicBoxIdFromIndex(int index)
+  {
+    int boxId;
+    switch (index)
+    {
+      case  0|| 1|| 2||
+            9||10||11||
+            18||19||20:
+        boxId = 0;
+      case  3|| 4|| 5||
+            12||13||14||
+            21||22||23:
+        boxId = 1;
+      case 6 || 7|| 8||
+            15||16||17||
+            24||25||26:
+        boxId = 2;
+      case 27||28||29||
+            36||37||38||
+            45||46||47:
+        boxId = 3;
+      case 30||31||32||
+            39||40||41||
+            48||49||50:
+        boxId = 4;
+      case 33||34||35||
+            42||43||44||
+            51||52||53:
+        boxId = 5;
+      case 54||55||56||
+            63||64||65||
+            72||73||74:
+        boxId = 6;
+      case 57||58||59||
+            66||67||68||
+            75||76||77:
+        boxId = 7;
+      case 60||61||62||
+            69||70||71||
+            78||79||80:
+        boxId = 8;
+      default:
+        boxId = -1;
+    }
+    return boxId;
+  }
+
   static Set<int> getSeen(int index, List<Cell> board)
   {
     Set<int> seen = {};
@@ -392,7 +439,7 @@ class Sudoku
         {
           board[cell].possibleVals.remove(num);
           changed = true;
-          print('deduction applied to cell $cell to remove $num as an option');
+          // print('deduction applied to cell $cell to remove $num as an option');
         }
       }
     }
@@ -427,8 +474,8 @@ class Sudoku
         {
           if(setB.containsAll(subset) && subset.isNotEmpty && setB != setA)
           {
-            print('set theory applied');
-            print(subset);
+            // print('set theory applied');
+            // print(subset);
             setBWithoutSubset = setB.difference(subset);
 
             changed = _tryUpdatePossibleValsOfSet(setBWithoutSubset, {num}, board);
@@ -453,8 +500,8 @@ class Sudoku
     }
     if(group.length == groupPossibleVals.length)
     {
-      print('group exclusivity applied');
-      print('group: $group with possible vals: $groupPossibleVals');
+      // print('group exclusivity applied');
+      // print('group: $group with possible vals: $groupPossibleVals');
       Set<int> row = _getRowMembersFromIndex(group.toList()[0]);
       Set<int> col = _getColumnMembersFromIndex(group.toList()[0]);
       Set<int> box = _getBoxMembers(board[group.toList()[0]].boxId, board).toSet();
@@ -540,8 +587,7 @@ class Sudoku
               {
                 nums = a.possibleVals.union(b.possibleVals).difference(board[c].possibleVals);
                 
-                _tryUpdatePossibleValsOfSet(seenIntersectAB, nums, board);
-                changed = true;
+                changed = _tryUpdatePossibleValsOfSet(seenIntersectAB, nums, board);
               }
             }
           }
@@ -627,7 +673,6 @@ class Sudoku
 
   static SolveOutcome logicalSolve(List<Cell> board, List<dynamic> variants)
   {
-    sum=0;
     Cell cell;
     for(cell in board)
     {
@@ -662,8 +707,8 @@ class Sudoku
       }
     }
     final solutionOutcome = checkSolIsGood(board, variants);
-    print('error is $error');
-    print(solutionOutcome.$1);
+    // print('error is $error');
+    // print(solutionOutcome.$1);
     if (solutionOutcome.$1==CheckSolOutcome.good)
     {
       return SolveOutcome.success;
@@ -677,7 +722,7 @@ class Sudoku
         cell.pencilCorner = cell.possibleVals;
       }
     }
-    return SolveOutcome.success;
+    return SolveOutcome.noSolutionFound;
   }
   // static bool _isInputValid(Cell cell, List<Cell> board)
   // {
