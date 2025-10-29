@@ -439,7 +439,6 @@ class Sudoku
         {
           board[cell].possibleVals.remove(num);
           changed = true;
-          // print('deduction applied to cell $cell to remove $num as an option');
         }
       }
     }
@@ -463,19 +462,17 @@ class Sudoku
     }
     for(dynamic v in variants)
     {
-      if(v.isExclusive) exclusiveConstraints.add(v.appliesToIndexes.toSet());
+      if(v.isExclusive && v.appliesToIndexes.length==9) exclusiveConstraints.add(v.appliesToIndexes.toSet());
     }
-    for(Set<int> setA in [...boxes, ...rows, ...cols])
+    for(Set<int> setA in [...boxes, ...rows, ...cols, ...exclusiveConstraints])
     {
       for(int num=1; num<=9; num++)
       {
         Set<int> subset = setA.where((cell) => board[cell].possibleVals.contains(num)).toSet();
-        for(Set<int> setB in [...boxes, ...rows, ...cols])
+        for(Set<int> setB in [...boxes, ...rows, ...cols, ...exclusiveConstraints])
         {
           if(setB.containsAll(subset) && subset.isNotEmpty && setB != setA)
           {
-            // print('set theory applied');
-            // print(subset);
             setBWithoutSubset = setB.difference(subset);
 
             changed = _tryUpdatePossibleValsOfSet(setBWithoutSubset, {num}, board);
@@ -500,8 +497,6 @@ class Sudoku
     }
     if(group.length == groupPossibleVals.length)
     {
-      // print('group exclusivity applied');
-      // print('group: $group with possible vals: $groupPossibleVals');
       Set<int> row = _getRowMembersFromIndex(group.toList()[0]);
       Set<int> col = _getColumnMembersFromIndex(group.toList()[0]);
       Set<int> box = _getBoxMembers(board[group.toList()[0]].boxId, board).toSet();
@@ -519,7 +514,7 @@ class Sudoku
       }
       return changed;
     } 
-    if(group.length==8 || groupPossibleVals.length==8)
+    if(group.length==4 || groupPossibleVals.length==4)
     {
       return false;
     }
@@ -597,7 +592,7 @@ class Sudoku
     return changed;
   }
 
-  static bool _xWingChecker(List<List<int>> mainList, List<List<int>> crossingList, bool rowMain, List<Cell> board)
+  static bool _xWingChecker(List<List<int>> mainList , bool rowMain, List<Cell> board)
   {
     bool changed = false;
     
@@ -665,8 +660,8 @@ class Sudoku
       rows.add(_getRowMembers(id));
       cols.add(_getColumnMembers(id));
     }
-    changed = _xWingChecker(rows, cols, true, board)
-            // | _xWingChecker(cols, rows, false, board)
+    changed = _xWingChecker(rows, true, board)
+            | _xWingChecker(cols, false, board)
             | changed;
     return changed;
   }
@@ -693,9 +688,9 @@ class Sudoku
       if(tryAgain) continue;
       tryAgain = _yWingChecker(board);
       if(tryAgain) continue;
-      tryAgain = _groupExclusivityChecker(board);
-      if(tryAgain) continue;
       tryAgain = _xWingControler(board);
+      if(tryAgain) continue;
+      tryAgain = _groupExclusivityChecker(board);
       if(tryAgain) continue;
       for(Constraint c in variants)
       {
@@ -707,8 +702,6 @@ class Sudoku
       }
     }
     final solutionOutcome = checkSolIsGood(board, variants);
-    // print('error is $error');
-    // print(solutionOutcome.$1);
     if (solutionOutcome.$1==CheckSolOutcome.good)
     {
       return SolveOutcome.success;
@@ -718,79 +711,10 @@ class Sudoku
     {
       if(cell.num==0)
       {
-        cell.pencilCenter = {};
+        cell.pencilCentre = {};
         cell.pencilCorner = cell.possibleVals;
       }
     }
     return SolveOutcome.noSolutionFound;
   }
-  // static bool _isInputValid(Cell cell, List<Cell> board)
-  // {
-  //   bool valid = true;
-  //   for(Cell comparer in board)
-  //   {
-  //     if (isSeen(cell, comparer) && cell.num==comparer.num)
-  //     {
-  //       valid = false;
-  //       break;
-  //     }
-  //   }
-  //   return valid;
-  // }  
-
-  // static (SolveOutcome, List<Cell>) _bruteForce(List<Cell> board)
-  // {
-  //   int delme = 0;
-  //   int max = 0;
-  //   List<int> indexStack = [];
-  //   bool backtracked = false;
-  //   for(int i=0; i<81;)
-  //   {  
-  //     if(delme%1000000==0)
-  //     {
-  //       print(delme);
-  //       print('searching');
-  //       print('currently at index $i max index is $max');
-  //     }
-  //     if(i>max)max=i;
-  //     delme++;
-  //     if(board[i].isFixed)
-  //     {
-  //       i++;
-  //       continue;
-  //     }
-  //     if(!backtracked)
-  //     {
-  //       board[i].num = 0;
-  //     }
-  //     backtracked = false;
-  //     board[i].num++;
-  //     while(!_isInputValid(board[i], board))
-  //     {
-  //       board[i].num++;
-  //     }
-  //     if(board[i].num>9)
-  //     {
-  //       board[i].num=0;
-  //       backtracked = true;
-  //       if(indexStack.isEmpty)return(SolveOutcome.noSolution, []);
-  //       i = indexStack.removeLast();
-  //       continue;
-  //     }
-  //     if(!backtracked)indexStack.add(i);
-  //     i++;            
-  //   }
-  //   return (SolveOutcome.success, board);
-  // }
-
-  // static (SolveOutcome, List<Cell>) solve(List<Cell> board, List<dynamic> constraints)
-  // {
-    // (SolveOutcome, List<Cell>) outcome = _basicSolve(board);
-    // if(constraints.isEmpty)
-    // {
-    //   print(outcome);
-    //   return outcome;
-    // }
-    // return _basicSolve(board);
-  // }
 }

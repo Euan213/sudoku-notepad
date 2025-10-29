@@ -3,8 +3,9 @@ import 'dart:collection';
 import 'package:sudoku_notepad/variant.dart';
 import 'package:sudoku_notepad/sudoku.dart';
 import 'package:sudoku_notepad/cell.dart';
+import 'package:sudoku_notepad/saveData.dart';
 
-class Constraint{
+abstract class Constraint implements saveData{
   List<int> appliesToIndexes;
   Constraint(this.appliesToIndexes);
 

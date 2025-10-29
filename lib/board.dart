@@ -11,16 +11,17 @@ import 'package:sudoku_notepad/cellColours.dart';
 import 'package:sudoku_notepad/hint.dart';
 import 'package:sudoku_notepad/variant.dart';
 import 'package:dotted_line/dotted_line.dart';
+import 'package:sudoku_notepad/swipable.dart';
 
-enum Move {number, magicPencil, pencilCenter, centerZero, pencilCorner, cornerZero, colour}
+enum Move {number, magicPencil, pencilCentre, centreZero, pencilCorner, cornerZero, colour}
 
 class Board extends StatefulWidget{
   final String name;
   final int initBoardId;
-  final String board;
+  final List<dynamic> board;
   final bool boardModePlay;
-  final List<String> constraints;
-  const Board(this.initBoardId, this.constraints, this.boardModePlay, this.board, this.name, {super.key});
+  final List<dynamic> constraints;
+  const Board({required this.initBoardId, required this.constraints, required this.boardModePlay, required this.board, required this.name, super.key});
 
   @override
   State<Board> createState() => _BoardState();
@@ -57,7 +58,6 @@ class _BoardState extends State<Board>
   void _populateBoard()
   {
     Cell cell;
-    int boxId;
     for (int index=0; index<=80; index++)
     {
       cell = Cell(Sudoku.getClassicBoxIdFromIndex(index), index);
@@ -65,33 +65,38 @@ class _BoardState extends State<Board>
     }
   }
 
-  String meAsString()
+  Map<String, dynamic> toJson()
   {
-    List<String> cells = [];
-    List<String> constraintsStr = [];
-    for (Cell cell in board)
-    {
-      String centerStr='';
-      for (int num in cell.pencilCenter)
-      {
-        centerStr+='$num';
-      }
-      String cornerStr='';
-      for (int num in cell.pencilCorner)
-      {
-        cornerStr+='$num';
-      }
-      cells.add('${cell.isFixed?1:0}.${cell.num}.$centerStr.$cornerStr.${cell.getColourId()}.${cell.boxId}');
-    }
-    if(constraints.isNotEmpty)
-    {
-      for(var c in constraints)
-      {
-        constraintsStr.add(c.asString());
-      }
-    }
-    return '${constraintsStr.join('¦')}|${boardModePlay?1:0}|${cells.join(',')}|$name';
+    return {"name":name, "board":board, "constraints":constraints, "playMode":boardModePlay};
   }
+
+  // String meAsString()
+  // {
+  //   List<String> cells = [];
+  //   List<String> constraintsStr = [];
+  //   for (Cell cell in board)
+  //   {
+  //     String centreStr='';
+  //     for (int num in cell.pencilCentre)
+  //     {
+  //       centreStr+='$num';
+  //     }
+  //     String cornerStr='';
+  //     for (int num in cell.pencilCorner)
+  //     {
+  //       cornerStr+='$num';
+  //     }
+  //     cells.add('${cell.isFixed?1:0}.${cell.num}.$centreStr.$cornerStr.${cell.getColourId()}.${cell.boxId}');
+  //   }
+  //   if(constraints.isNotEmpty)
+  //   {
+  //     for(var c in constraints)
+  //     {
+  //       constraintsStr.add(c.asString());
+  //     }
+  //   }
+  //   return '${constraintsStr.join('¦')}|${boardModePlay?1:0}|${cells.join(',')}|$name';
+  // }
 
   void setSelectMode(ButtonMode m)
   {
@@ -181,16 +186,16 @@ class _BoardState extends State<Board>
   List<List<int>> magicPencil(Cell cell, newNum)
   {
     List<int> updateUs = Sudoku.getSeen(cell.index, board).toList();
-    List<int> center = [];
+    List<int> centre = [];
     List<int> corner = [];
     Cell updateCell;
     for(int index in updateUs)
     {
       updateCell = board[index];
-      if(updateCell.pencilCenter.contains(newNum))
+      if(updateCell.pencilCentre.contains(newNum))
       {
-        updateCell.pencilCenter.remove(newNum);
-        center.add(index);
+        updateCell.pencilCentre.remove(newNum);
+        centre.add(index);
       }
       if(updateCell.pencilCorner.contains(newNum))
       {
@@ -198,7 +203,7 @@ class _BoardState extends State<Board>
         corner.add(index);
       }
     }
-    return [center, corner];
+    return [centre, corner];
   }
 
   void setNumber(int n, Cell cell, bool fixed)
@@ -250,16 +255,16 @@ class _BoardState extends State<Board>
     });
   }
   
-  void setPencilCenter(int n, Cell cell)
+  void setpencilCentre(int n, Cell cell)
   {
     setState(() {
       if (n == 0)
       {
-        cell.pencilCenter={};
+        cell.pencilCentre={};
       }
       else 
       {
-        cell.setPencilCenter(n);
+        cell.setpencilCentre(n);
       }
     });
   }
@@ -287,7 +292,7 @@ class _BoardState extends State<Board>
             setNumber(move[2], board[move[1]], false);
             for(int index in move[3][0])
             {
-              board[index].pencilCenter.add(move[4]);
+              board[index].pencilCentre.add(move[4]);
             }
             for(int index in move[3][1])
             {
@@ -295,17 +300,17 @@ class _BoardState extends State<Board>
             }
             magicPencilMarks = true;
           }
-          case Move.pencilCenter:
-            setPencilCenter(move[2], board[move[1]]);
+          case Move.pencilCentre:
+            setpencilCentre(move[2], board[move[1]]);
           case Move.pencilCorner:
             setPencilCorner(move[2], board[move[1]]);
           case Move.colour:
             setColour(move[2], board[move[1]]);
-          case Move.centerZero:
+          case Move.centreZero:
           {
             for(int needsUndone in move[2])
             {
-              setPencilCenter(needsUndone, board[move[1]]);
+              setpencilCentre(needsUndone, board[move[1]]);
             }
           }
           case Move.cornerZero:
@@ -551,13 +556,13 @@ class _BoardState extends State<Board>
             ), 
           );
         }
-        else if(cell.pencilCenter.isNotEmpty)
+        else if(cell.pencilCentre.isNotEmpty)
         {
           alignment = Alignment.center;
           String txtStr = '';
           for (int i = 1; i <= 9; i++)
           {
-            if (cell.pencilCenter.contains(i))
+            if (cell.pencilCentre.contains(i))
             {
               txtStr += '$i';
             }
@@ -566,7 +571,7 @@ class _BoardState extends State<Board>
             fit: BoxFit.fitWidth,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: selected.isNotEmpty && cell.pencilCenter.contains(selected[0].num)? 
+                color: selected.isNotEmpty && cell.pencilCentre.contains(selected[0].num)? 
                             CellColours.selectedHighlighter
                             :const Color.fromARGB(0, 255, 255, 255),
                 borderRadius: BorderRadius.circular(3)
@@ -654,10 +659,10 @@ class _BoardState extends State<Board>
 
     if(boardModePlay)
     {
-      inputModeButtons.add(ElevatedButton( // center pencil marks input mode button
-        onPressed: () => pressAction(ButtonMode.pencilCenter), 
-        style: style(ButtonMode.pencilCenter),
-        child: Text('Center')
+      inputModeButtons.add(ElevatedButton( // centre pencil marks input mode button
+        onPressed: () => pressAction(ButtonMode.pencilCentre), 
+        style: style(ButtonMode.pencilCentre),
+        child: Text('Centre')
       ));
       inputModeButtons.add(ElevatedButton( //corner pencil marks input mode button
         style: style(ButtonMode.pencilCorner),
@@ -693,7 +698,7 @@ class _BoardState extends State<Board>
         padding: EdgeInsets.only(right: 10),
         child:  buttonMode==ButtonMode.number?        Image(image: AssetImage('assets/NumberIndicator.png')):
                 buttonMode==ButtonMode.fixedNum?      Image(image: AssetImage('assets/NumberIndicator.png')):
-                buttonMode==ButtonMode.pencilCenter?  Image(image: AssetImage('assets/PencilCenterIndicator.png')):
+                buttonMode==ButtonMode.pencilCentre?  Image(image: AssetImage('assets/pencilCentreIndicator.png')):
                 buttonMode==ButtonMode.pencilCorner?  Image(image: AssetImage('assets/PencilCornerIndicator.png')):
                 buttonMode==ButtonMode.colour?        Icon(Icons.color_lens, size: 35, color: const Color.fromARGB(255, 190, 190, 190),):
                                                       Spacer(),
@@ -956,13 +961,11 @@ class _BoardState extends State<Board>
                           )
                         ],
                       ),
-                      Divider(
-
-                      ),
+                      Divider(),
                     ]);
                   },
                 ),
-  ),
+              ),
             ),
           ),
           Container(
@@ -1144,14 +1147,14 @@ class _BoardState extends State<Board>
         colour = CellColours.baseColours[number];
         textVal = "";
         child = Text(textVal, style: textStyle);
-      case ButtonMode.pencilCenter:
+      case ButtonMode.pencilCentre:
         onPressFunction =()=> 
         {
           if(selected.isNotEmpty)
           {
-            number!=0?undoHistory.add([Move.pencilCenter, selected[0].index, number]):
-              undoHistory.add([Move.centerZero, selected[0].index, [...selected[0].pencilCenter]]),
-            setPencilCenter(number, selected[0]),
+            number!=0?undoHistory.add([Move.pencilCentre, selected[0].index, number]):
+              undoHistory.add([Move.centreZero, selected[0].index, [...selected[0].pencilCentre]]),
+            setpencilCentre(number, selected[0]),
           }
         };
         textStyle = TextStyle(fontSize: 20, color: textColour,);
@@ -1212,7 +1215,7 @@ class _BoardState extends State<Board>
           {
             cell.num=0;
             cell.pencilCorner = {};
-            cell.pencilCenter = {};
+            cell.pencilCentre = {};
           }
           cell.updateBaseId(0);
           cell.updateTextColour();
@@ -1232,15 +1235,15 @@ class _BoardState extends State<Board>
     });
   }
 
-  void _doSave() async
+  void _doSave({bool force=false}) async
   {
     
     DateTime now = DateTime.now();
     int difference = now.difference(lastSave).inSeconds;
-    if(difference >= 5)
+    if(difference >= 5 || force)
     {
       lastSave = now;
-      boardId = await SaveLoad.saveBoard(boardId!, meAsString());
+      boardId = await saveLoad.saveBoard(boardId!, toJson());
     }
   }
 
@@ -1258,7 +1261,7 @@ class _BoardState extends State<Board>
   void initState()
   {
     super.initState();
-    List<String> boardCells = widget.board.split(',');
+    List<dynamic> boardCells = widget.board;
     boardModePlay = widget.boardModePlay;
     boardId = widget.initBoardId;
     if (boardModePlay)
@@ -1266,36 +1269,23 @@ class _BoardState extends State<Board>
      buttonMode = ButtonMode.number;
     }
     name = widget.name;
-    if (widget.board=='')
+    print(widget.board);
+    if (widget.board.isEmpty)
     {
       _populateBoard();
     }
     else
     {
-      List<String> cellData;
+
       Cell newCell;
-      List<String> centerVals;
-      List<String> cornerVals;
-      int i = 0;
-      for (String cellString in boardCells)
+      for (Map<String, dynamic> cellData in boardCells)
       {
-        cellData = cellString.split('.');
-        newCell = Cell(int.parse(cellData[5]) ,i);
-        centerVals = cellData[2].split('');
-        cornerVals = cellData[3].split('');
-        newCell.isFixed = cellData[0]=='0'? false:true;
-        newCell.num = int.parse(cellData[1]);
-        for (String num in centerVals)
-        {
-          newCell.pencilCenter.add(int.parse(num));
-        }
-        for (String num in cornerVals)
-        {
-          newCell.pencilCorner.add(int.parse(num));
-        }
-        newCell.updateBaseId(int.parse(cellData[4]));
+        newCell = Cell(cellData["boxId"], cellData["index"]);
+        newCell.fromJson(corner: cellData["corner"].toSet(), centre: cellData["centre"].toSet());
+        newCell.isFixed = cellData["fixed"];
+        newCell.num = cellData["num"];
+        newCell.updateBaseId(cellData["colour"]);
         newCell.updateTextColour();
-        i++;
         board.add(newCell);
       }
     }
@@ -1303,27 +1293,22 @@ class _BoardState extends State<Board>
     if(widget.constraints.isNotEmpty)
     {
       Variant v;
-      List<int> cells;
-      List<String> groupingData;
-      for(String grouping in widget.constraints)
+      print(widget.constraints);
+      for(Map<String, dynamic> constraintData in widget.constraints)
       {
-        cells = [];
-        groupingData = grouping.split(',');
         try //load variants constraints from save
         {
-          v = Variant.values.byName(groupingData[0]);
-          for(String index in groupingData[1].split('.'))
-          {
-            cells.add(int.parse(index));
-          }
+          v = Variant.values.byName(constraintData["type"]);
           switch(v) //since additional data types/amounts can vary on the variant it much be dealt with in the context of the variant it applies to.
           {
             case Variant.killer:
-              int sum = int.parse(groupingData[2]);
-              constraints.add(KillerConstraint(cells, sum));
+              KillerConstraint newK =  KillerConstraint([], constraintData["sum"]);
+              newK.fromJson(constraintData["cells"]);
+              constraints.add(newK);
           }
         }catch (e) //skip entries that cant be read, prevents a crash on bad data
         { 
+          print(e);
           continue;
         }
       }
@@ -1338,7 +1323,7 @@ class _BoardState extends State<Board>
     _doSave();
     return GestureDetector(
       onTap: (){FocusScope.of(context).requestFocus(FocusNode());},
-        child: Scaffold(
+      child: Scaffold(
         resizeToAvoidBottomInset : false,
         key: scaffoldKey,
         appBar: AppBar(
@@ -1394,7 +1379,11 @@ class _BoardState extends State<Board>
                     child: IconButton(
                       color: Colors.grey,
                       icon: Icon(Icons.home),
-                      onPressed: () => Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => MyHomePage()), (route) => false),
+                      onPressed: () => 
+                      {
+                        _doSave(force: true),
+                        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => MyHomePage()), (route) => false)
+                      },
                     ),
                   ),
                   Container(
@@ -1404,6 +1393,7 @@ class _BoardState extends State<Board>
                       icon: Icon(Icons.save),
                       onPressed: () => 
                       {
+                        _doSave(force: true),
                         Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => MyHomePage()), (route) => false),
                         Navigator.of(context).push(MaterialPageRoute(builder: (context) => SavesPage())),
                       },
@@ -1589,6 +1579,7 @@ class _BoardState extends State<Board>
                 ] 
               ),
             ),
+            Swipable(), //REMOVE
             Container(
               margin: const EdgeInsets.all(5),
               alignment: Alignment.center,

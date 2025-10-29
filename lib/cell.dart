@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:sudoku_notepad/cellColours.dart';
 import 'package:sudoku_notepad/marginType.dart';
 import 'package:sudoku_notepad/sudoku.dart';
+import 'package:sudoku_notepad/saveData.dart';
 
-class Cell {
+class Cell implements saveData{
   final int index;
   int boxId;
   bool isFixed = false;
@@ -15,7 +16,7 @@ class Cell {
 
   int num = 0;
   Set<int> pencilCorner = {};
-  Set<int> pencilCenter = {};
+  Set<int> pencilCentre = {};
   Set<int> possibleVals = {};
   int _baseColourId = 0;
   Color colour = CellColours.baseColours[0];
@@ -26,6 +27,21 @@ class Cell {
   bool selected = false;
 
   Cell(this.boxId, this.index);
+  
+  @override
+  Map<String, dynamic> toJson() 
+  {
+    return {"index":index, "boxId":boxId, "fixed":isFixed, "num":num, "corner":pencilCorner.toList(), "centre":pencilCentre.toList(), "colour":_baseColourId};
+  }
+  void fromJson({required Set<dynamic> corner, required Set<dynamic> centre})
+  {
+    for (var num in corner) {
+      pencilCorner.add(num);
+    }
+    for (var num in centre) {
+      pencilCentre.add(num);
+    }
+  }
 
   int getNum()
   {
@@ -65,9 +81,9 @@ class Cell {
   {
     pencilCorner.contains(n)? pencilCorner.remove(n) : pencilCorner.add(n);
   }
-  void setPencilCenter(int n)
+  void setpencilCentre(int n)
   {
-    pencilCenter.contains(n)? pencilCenter.remove(n) : pencilCenter.add(n);
+    pencilCentre.contains(n)? pencilCentre.remove(n) : pencilCentre.add(n);
   }
 
   void changeHintStatus()

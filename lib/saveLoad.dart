@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:sudoku_notepad/saveData.dart';
 
 
-class SaveLoad
+abstract class saveLoad
 {
-  SaveLoad._();
+
+  static const NEW_BOARD = -1;
 
   static Future<String> get _localPath async 
   {
@@ -15,7 +18,7 @@ class SaveLoad
   static Future<File> get _file async 
   {
   final path = await _localPath;
-  return File('$path/saves.txt');
+  return File('$path/saves.json'); 
   }
 
   static Future<String> get asString async 
@@ -24,18 +27,28 @@ class SaveLoad
     return file.readAsString();
   }
 
-  static Future<List<String>> get saves async
+  static Future<Map<String, dynamic>> getSaves() async 
   {
     String content = await asString;
     if (content == '')
     {
-      return [];
+      print("empty file detected");
+      return {"next ID":0, "saves": {}};
     }
-    List<String> saves = content.split('\n');
+    Map<String, dynamic> saves = jsonDecode(content);
     return saves;
   }
 
-  static Future<File> writeInitData() async 
+  static String toJson(Map<String, dynamic> object)
+  {
+    return jsonEncode(object, 
+      toEncodable: (object) => object is saveData
+      ? object.toJson()
+      : throw UnsupportedError("oopsies this isnt json encodable: $object")
+    );
+  }
+
+  static Future<File> writeInitData() async //change
   {
     final file = await _file;
     return file.writeAsString('|1|0.0..987.0.0,0.0.654..0.0,0.0...1.0,0.2...0.1,0.0...0.1,0.0...0.1,0.0...0.2,0.0...0.2,0.0...0.2,0.0...0.0,0.0...0.0,0.0...0.0,0.0...0.1,0.0...0.1,0.0...0.1,0.0...0.2,0.0...0.2,0.0...0.2,0.0...0.0,0.0...0.0,0.0...0.0,0.0...0.1,0.0...0.1,0.0...0.1,0.0...0.2,0.0...0.2,0.0...0.2,0.0...0.3,0.0...0.3,0.0...0.3,0.0...0.4,0.0...0.4,0.0...0.4,0.0...0.5,0.0...0.5,0.0...0.5,0.0...0.3,0.0...0.3,0.0...0.3,0.0...0.4,0.0...0.4,0.0...0.4,0.0...0.5,0.0...0.5,0.0...0.5,0.0...0.3,0.0...0.3,0.0...0.3,0.0...0.4,0.0...0.4,0.0...0.4,0.0...0.5,0.0...0.5,0.0...0.5,0.0...0.6,0.0...0.6,0.0...0.7,1.5...2.6,1.5...2.7,1.5...2.7,0.0...0.8,0.0...0.8,0.0...0.8,0.0...0.6,0.0...0.6,0.0...0.7,1.5...2.6,1.5...2.7,1.5...2.7,0.0...0.8,0.0...0.8,0.0...0.8,0.0...0.6,0.0...0.6,0.0...0.6,1.5...2.7,1.5...2.7,1.5...2.7,0.0...0.8,0.0...0.8,0.0...0.8|PuzzleNAME\n');
@@ -51,34 +64,35 @@ class SaveLoad
     return file.writeAsString(mode:mode, str);
   }
 
-  static Future<int> saveBoard(int index, String board) async
+  static Future<int> saveBoard(int ID, Map<String, dynamic> board) async 
   {
-    String content = await asString;
-    List<String> saves = content.split('\n');
-    if (index == -1)
+    Map<String, dynamic> gameSaves = await getSaves();
+    String jsonString = '';
+    int newID = gameSaves["next ID"];
+    if (ID == NEW_BOARD)
     {
-      writeToFile(FileMode.append, '$board\n');
-      return saves.length-1; //returns length-1 because the length of saves changes when the file is updated, despite being defined above this happening.
+      gameSaves["next ID"]++;
+      gameSaves["saves"]["$newID"] = board;
+
+    } else
+    {
+      gameSaves["saves"]["$ID"] = board;
     }
-    try
-    {
-      saves[index] = board;
-    }catch (e)
-    {
-      print(e);
-      return index;
-    }
-    writeToFile(FileMode.write, '${saves.where((board) => board!='').join('\n')}\n');
-    return index;
+    jsonString = toJson(gameSaves);
+    writeToFile(FileMode.write, jsonString);
+    
+    return ID==-1
+    ? newID
+    :ID;
   }
 
-  static Future<void> deleteBoard(int index) async
+  static Future<void> deleteBoard(int ID) async
   {
-    List<String> boards = await saves;
+    Map<String, dynamic> gameSaves = await getSaves();
 
-    boards.removeAt(index);
-    String deleted = boards.join('\n');
+    gameSaves["saves"].remove(ID.toString());
+    String jsonString = toJson(gameSaves);
 
-    writeToFile(FileMode.write, deleted);
+    writeToFile(FileMode.write, jsonString);
   }
 }

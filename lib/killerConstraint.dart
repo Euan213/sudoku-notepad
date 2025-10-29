@@ -7,8 +7,6 @@ import 'package:sudoku_notepad/cell.dart';
 
 class KillerConstraint extends Constraint
 {
-  int recs=0;
-
   int sum;
   Set<int> mustContain = {};
   @override
@@ -45,6 +43,20 @@ class KillerConstraint extends Constraint
   }
 
   @override
+  Map<String, dynamic> toJson()
+  {
+    return {"type":type?.name, "cells":appliesToIndexes, "sum":sum};
+  }
+
+  void fromJson(cells)
+  {
+    for (var c in cells)
+    {
+      appliesToIndexes.add(c);
+    }
+  }
+
+  @override
   String asString()
   {
     return 'killer,${appliesToIndexes.join('.')},$sum';
@@ -67,6 +79,7 @@ class KillerConstraint extends Constraint
     }
     return (remainingSum, cells);
   }
+  
   @override
   HashMap<int, List<int>> solveControler(bool forSolve, List<Cell> board) 
   {
@@ -76,9 +89,6 @@ class KillerConstraint extends Constraint
     HashMap<int, List<int>> instructions = HashMap();
     if(forSolve)
     {
-      // (cells, nums) = _singleRemainingCell(board);
-      // _updateInstructions(cells, nums, instructions);
-
       (cells, nums) = _cageExclusivity(board);
       _updateInstructions(cells, nums, instructions);
 
@@ -118,15 +128,6 @@ class KillerConstraint extends Constraint
     return nums.isEmpty? ([],{}) : (appliesToIndexes, nums);
   }
 
-  (List<int>, Set<int>) _singleRemainingCell(List<Cell> board)
-  {
-    final (remainingSum, remainingCells) = _getRemainingSumAndCells(board);
-    if(remainingCells.length == 1 && sum!=0)
-    {
-      return(remainingCells, {1,2,3,4,5,6,7,8,9}.difference({remainingSum}));
-    }
-    return([], {});
-  }
   (List<int>, Set<int>) _possibleCombosExclusions(List<Cell> board)
   {
     final (remainingSum, remainingCells) = _getRemainingSumAndCells(board);
@@ -137,16 +138,13 @@ class KillerConstraint extends Constraint
     {
       cageVals.addAll(board[index].possibleVals);
     }
-    recs=0;
     getCombos(combos, remainingSum, cageVals, {}, remainingCells.length);
-    print(combos.isNotEmpty?combos.reduce((prev, cur) => prev.union(cur)):'empty');
     return combos.isEmpty? ([],{})
       :(remainingCells, {1,2,3,4,5,6,7,8,9}.difference(combos.reduce((prev, cur) => prev.union(cur))));
   }
 
   void getCombos(Set<Set<int>> combos, int cageSum, Set<int> cageVals, Set<int> thisCombo, int remainingCells)
   {
-    recs++;
     bool addCombo = true;
     int thisSum = thisCombo.fold(0, (prev, current) => prev+current);
     if(thisSum>cageSum) return;

@@ -46,6 +46,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  static const NEW_BOARD = -1;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,7 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             Spacer(),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => Board(-1, [], false, '', 'New Puzzle'))),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => Board(initBoardId: NEW_BOARD, constraints:[], boardModePlay: false, board: [], name: 'New Puzzle'))),
               style: ElevatedButton.styleFrom(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 backgroundColor: Colors.green
@@ -104,15 +105,21 @@ class SavesPage extends StatefulWidget {
   State<SavesPage> createState() => _SavesPageState();
 }
 
+class TempBoard 
+{
+  int ID;
+  Map<String, dynamic> boardData;
+
+  TempBoard(this.ID, this.boardData);
+}
+
 class _SavesPageState extends State<SavesPage>
 {
   @override
   void initState()
   {
     super.initState();
-    SaveLoad.writeToFile(FileMode.append, '');
-    // SaveLoad.writeInitData();
-    // _numSaves;
+    saveLoad.writeToFile(FileMode.append, '');
   }
   @override
   Widget build(BuildContext context)
@@ -121,23 +128,25 @@ class _SavesPageState extends State<SavesPage>
       appBar: AppBar(
         title: const Text('Saves'),
       ),
-      body: FutureBuilder<String>(
-        future: SaveLoad.asString, 
-        builder: (BuildContext context, AsyncSnapshot<String> snapshot) 
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: saveLoad.getSaves(), 
+        builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) 
         {
+          var savesList = [];
           switch (snapshot.connectionState) 
           {
             case ConnectionState.waiting || ConnectionState.active: 
               return Text('Loading your saves');
             default:
-              List<String>? data = snapshot.data?.split('\n');
+              Map<dynamic, dynamic>? data = snapshot.data?["saves"];
+              data?.forEach((k,v) => savesList.add(TempBoard(int.parse(k), v)));
               if (snapshot.hasError)
               {
                 return Text('Error: ${snapshot.error}');  
               }
               else
               {
-                if (snapshot.data=='')
+                if (savesList.isEmpty)
                 {
                   return Text('Looks like you have no saves!');
                 }
@@ -150,11 +159,11 @@ class _SavesPageState extends State<SavesPage>
                     crossAxisCount: 2,
                     childAspectRatio: 2.5,
                   ),
-                  itemCount: data!.length-1,
+                  itemCount: savesList.length,
                   itemBuilder: (context, index) 
                   {
-                    List<String> boardData = data[index].split('|');
-                    if (boardData.length!=4)
+                    TempBoard temp = savesList[index];
+                    if (temp.boardData.length!=4)
                     {
                       return ElevatedButton(
                         style: ElevatedButton.styleFrom(
@@ -163,7 +172,7 @@ class _SavesPageState extends State<SavesPage>
                           textStyle: TextStyle(fontWeight: FontWeight.bold,),
                         ),
                         onPressed: () => {
-                          SaveLoad.deleteBoard(index).then((_) 
+                          saveLoad.deleteBoard(temp.ID).then((_) 
                           {
                             setState(() {});
                           }), 
@@ -185,7 +194,7 @@ class _SavesPageState extends State<SavesPage>
                           child: Stack(
                             children:[
                               Container(alignment: Alignment.topCenter, child: Text(
-                                boardData[3],
+                                temp.boardData["name"],
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: const Color.fromARGB(255, 42, 0, 228),)
@@ -197,7 +206,7 @@ class _SavesPageState extends State<SavesPage>
                                   children: [
                                     IconButton(
                                       onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                                        builder: (context) => Board(index, boardData[0]==''?[]:boardData[0].split('¦'), boardData[1]=='0'?false:true, boardData[2], boardData[3])
+                                        builder: (context) => Board(initBoardId:temp.ID, constraints:temp.boardData["constraints"], boardModePlay: temp.boardData["playMode"], board: temp.boardData["board"], name: temp.boardData["name"],)
                                       )),
                                       icon: Icon(Icons.play_arrow, color: const Color.fromARGB(255, 0, 158, 5), size: 50,)
                                     ),
@@ -207,14 +216,14 @@ class _SavesPageState extends State<SavesPage>
                                           context: context,
                                           builder: (context) => AlertDialog(
                                             backgroundColor: const Color.fromARGB(255, 199, 199, 199),
-                                            title: Text('Delete ${boardData[3]}?'),
-                                            content: Text('Are you absolutely sure you want to kill ${boardData[3]}? Theres no going back.'),
+                                            title: Text('Delete ${temp.boardData["name"]}?'),
+                                            content: Text('Are you absolutely sure you want to kill ${temp.boardData["name"]}? Theres no going back.'),
                                             actions: [
                                               ElevatedButton(
                                                 style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 212, 212, 212)),
                                                 onPressed: () => {
                                                   Navigator.pop(context, 'Killed'),
-                                                  SaveLoad.deleteBoard(index).then((_) 
+                                                  saveLoad.deleteBoard(temp.ID).then((_) 
                                                   {
                                                     setState(() {});
                                                   }), 
